@@ -38,12 +38,12 @@ def virtual_book_buster(bookcase):
 	
 	#"linear search" through sorted output comparing elements adding unique ones to output array
 	for i in range(len(sorted_list)-1): 
-	  if sorted_list[i] != sorted_list[i+1]: 
-		output.append(sorted_list[i])
-		
+		if sorted_list[i] != sorted_list[i+1]: 
+			output.append(sorted_list[i])
+		  
 	#deal with the corner case of not adding the last element 
 	if len(sorted_list) > 0: 
-	  output.append(sorted_list[-1])
+		output.append(sorted_list[-1])
 	  
 	return output
 	

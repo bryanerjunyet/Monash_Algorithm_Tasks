@@ -1,211 +1,460 @@
 """
-FIT2004 Assignment 1 - Locomotion Commotion
-Algorithm & Data Structure - Semester 1 2025
-Author: <Your Name>
-Student ID: <Your ID>
+Assignment 1 - Intercepting a Friend on a Train Loop
+This program determines the least cost driving path to intercept a friend who is riding a circular train route.
+The interception must occur at a train station at the exact same time, and you cannot wait at any location.
 
-This solution follows the assignment constraints strictly:
-- Time Complexity: O(|R| log |L|)
-- Space Complexity: O(|L| + |R|)
+Approach:
+- Use Dijkstra's algorithm to explore all possible driving paths.
+- At each train station reached, calculate whether the friend arrives at the same time.
+- Use a MinHeap to ensure efficient cost and time prioritization.
 
-Find the optimal (minimum cost, minimum driving time) driving path to intercept a friend on a moving train loop.
+Time Complexity: O(|R| log |L|)
+Space Complexity: O(|L| + |R|)
 """
 
-# --------------------------- MinHeap Class ---------------------------
+class Road:
+    """
+    This class represents a road between two locations.
+    """
+    def __init__(self, start, end, cost, time) -> None:
+        """
+        Function description:
+            A Road constructor.
+        :Input:
+            start (int): Start location no
+            end (int): End location no
+            cost (int): Travel cost of this road
+            time (int): Travel time (mins) of this road
+        :Time complexity:
+            O(1)
+        :Time complexity analysis:
+            Constant time for initialisation of Road attributes. 
+        :Space complexity:
+            O(1)
+        :Space complexity analysis:
+            Constant space for input and auxiliary.
+        """
+        self.start = start
+        self.end = end
+        self.cost = cost
+        self.time = time
+
+
+class Location:
+    """
+    This class represents a regular location or train station.
+    """
+    def __init__(self, location_no) -> None:
+        """
+        Function description:
+            A Location constructor.
+        :Input:
+            location_no (int): Location number for tracking
+        :Time complexity:
+            O(1)
+        :Time complexity analysis:
+            Constant time for initialisation of Location attributes. 
+        :Space complexity:
+            O(1)
+        :Space complexity analysis:
+            Constant space for input and auxiliary.
+        """
+        self.location_no = location_no
+        self.outgoing_roads = []  
+        self.min_cost = float('inf')  # minimum cost to reach this location
+        self.total_time = float('inf')  # time taken to reach this location
+        self.previous_location = None  # pointer to reconstruct path
+
+    def add_road(self, road) -> None:
+        """
+        Function description:
+            Add one outgoing road to a list of all for this location.
+        :Input:
+            road (Road): Road object to be added
+        :Time complexity:
+            O(1)
+        :Time complexity analysis:
+            Amortised complexity for append().
+        :Space complexity:
+            O(N), where N is the number of roads.
+        :Space complexity analysis:
+            Input space of O(N) and auxiliary space of O(1).
+        """
+        self.outgoing_roads.append(road)
+
+
 class MinHeap:
     """
-    This is a class of MinHeap, a binary tree with the value of each node 
-    less than or equal to the values of its children.
-    The root node is the smallest element in the heap.
+    This class represents a MinHeap for efficient selection of the minimum cost vertex.
     """
-    def __init__(self, max_size):
-        # Initialize heap with fixed array size (1-indexed)
-        self.length = 0  # Current number of elements
-        self.the_array = [None] * (max_size + 1)  # Heap array (1-based indexing)
+    def __init__(self, locations: list) -> None:
+        """
+        Function description:
+            A MinHeap constructor to store an array of minimum cost to locations.
+        :Input:
+            locations (list[tuple]): List of tuples (cost, location_no)
+        :Time complexity:
+            O(N), where N is the number of locations.
+        :Time complexity analysis:
+            Linear time for heapify().
+        :Space complexity:
+            O(N), where N is the number of input locations.
+        :Space complexity analysis:
+            Input space of O(N) and auxiliary space of O(1) for heap and position arrays.
+        """
+        self.length = len(locations)
+        self.heap = [None] * (self.length + 1)
+        self.position = list(range(1, self.length + 1)) # position map for updates
+        self.heapify(locations)
+    
+    def __len__(self) -> int:
+        """
+        Function description:
+            Returns number of elements in heap array.
+        :Input:
+            None
+        :Time complexity:
+            O(1)
+        :Time complexity analysis:
+            Constant time for accessing the length attribute.
+        :Space complexity:
+            O(1)
+        :Space complexity analysis:
+            No additional space is used.
+        """
+        return self.length
+    
+    def is_empty(self) -> bool:
+        """
+        Function description:
+            Checks if the heap is empty.
+        :Input:
+            None
+        :Output:
+            bool - True if heap array is empty, False otherwise
+        :Time complexity:
+            O(1)
+        :Time complexity analysis:
+            Constant time for checking the heap array empty or not.
+        :Space complexity:
+            O(N), where N is the number of input locations.
+        :Space complexity analysis:
+            Input space of O(N) and auxiliary space of O(1) for heap array.
+        """
+        return len(self) == 0
 
-    def __len__(self):
-        return self.length  # Return current heap size
+    def heapify(self, locations: list) -> None:
+        """
+        Function description:
+            Bottom-up construction of MinHeap from an array of locations. 
+        :Input:
+            locations (list[tuple]): List of tuples (cost, location_no)
+        :Time complexity:
+            O(N), where N is the number of locations.
+        :Time complexity analysis:
+            Linear time for input locations and construction of MinHeap.
+        :Space complexity:
+            O(N), where N is the number of input locations.
+        :Space complexity analysis:
+            Input space of O(N) and auxiliary space of O(1) for heap and position arrays.
+        """
+        # Add input data into the heap
+        for i in range(self.length):
+            self.heap[i + 1] = locations[i]  # heap starts from index 1
+            self.position[locations[i][1]] = i + 1  # map location_no to its position in the heap
+        print(self.heap)
+        print(self.position)
+        # Perform bottom-up operation
+        for i in range(self.length // 2, 0, -1):
+            self.sink(i)
 
-    def is_empty(self):
-        return self.length == 0  # Check if heap is empty
-
-    def rise(self, k):
-        # Bubble element up to maintain min-heap property
-        item = self.the_array[k]
-        while k > 1 and item < self.the_array[k // 2]:  # Compare with parent
-            self.the_array[k] = self.the_array[k // 2]  # Move parent down
-            k = k // 2  # Move up
-        self.the_array[k] = item  # Insert at correct position
-
-    def smallest_child(self, k):
-        # Return index of smaller child
-        if 2 * k == self.length or self.the_array[2 * k] < self.the_array[2 * k + 1]:
+    def get_min(self) -> tuple [int, int]:
+        """
+        Function description:
+            Get minimum cost location from heap array.
+        :Input:
+            None
+        :Output:
+            Tuple[int, int] - Minimum cost and corresponding location
+        :Time complexity:
+            O(log N), where N is the number of elements in MinHeap.
+        :Time complexity analysis:
+            Logarithmic time for sink().
+        :Space complexity:
+            O(N), where N is the depth of the MinHeap.
+        :Space complexity analysis:
+            Input space of O(N) and auxiliary space of O(1) for heap array.
+        """
+        if self.length == 0:
+            raise IndexError("Heap is empty")
+        minimum = self.heap[1]
+        self.swap(1, self.length)
+        self.length -= 1
+        self.sink(1)
+        return minimum
+    
+    def smallest_child(self, k: int) -> int:
+        """
+        Function description:
+            Find smallest child of a given parent node in MinHeap.
+        :Input:
+            k (int): Parent node index in MinHeap
+        :Output:
+            int - Smallest child node index
+        :Time complexity:
+            O(1)
+        :Time complexity analysis:
+            Constant time for comparisons to find smallest child.
+        :Space complexity:
+            O(N), where N is the depth of the MinHeap.
+        :Space complexity analysis:
+            Input space of O(N) and auxiliary space of O(1) for heap array.
+        """
+        if 2 * k == self.length or self.heap[2 * k][0] < self.heap[2 * k + 1][0]:
             return 2 * k
         else:
             return 2 * k + 1
+    
+    def swap(self, i: int, j: int) -> None:
+        """
+        Function description:
+            Swaps two elements in heap array and updates positions in the position array.
+        :Input:
+            i (int): First element index to swap
+            j (int): Second element index to swap
+        :Time complexity:
+            O(1)
+        :Time complexity analysis:
+            Constant time for reassigning of values in both heap and position arrays.
+        :Space complexity:
+            O(N), where N is the number of input locations.
+        :Space complexity analysis:
+            Input space of O(N) and auxiliary space of O(1) for heap and position arrays.
+        """
+        # Swap elements in heap array
+        self.heap[i], self.heap[j] = self.heap[j], self.heap[i]
+        # Update positions in position array
+        self.position[self.heap[i][1]], self.position[self.heap[j][1]] = i, j
 
-    def sink(self, k):
-        # Push element down to maintain min-heap
-        item = self.the_array[k]
+    def sink(self, k: int):
+        """
+        Function description:
+            Restores heap property by moving element down the heap.
+        :Input:
+            k (int): Index of the element to sink
+        :Time complexity:
+            O(log N), where N is the number of elements in MinHeap.
+        :Time complexity analysis:
+            Sinking an element involves traversing log N depth of the MinHeap.
+        :Space complexity:
+            O(N)
+        :Space complexity analysis:
+            Input space of O(N) and auxiliary space of O(1) for heap array.
+        """
         while 2 * k <= self.length:
-            min_child = self.smallest_child(k)
-            if self.the_array[min_child] >= item:
-                break  # Already in correct place
-            self.the_array[k] = self.the_array[min_child]  # Move child up
-            k = min_child
-        self.the_array[k] = item  # Place item in correct position
+            child = self.smallest_child(k)
+            if self.heap[k][0] <= self.heap[child][0]:
+                break
+            self.swap(k, child)
+            k = child
 
-    def add(self, element):
-        # Add new element to heap
-        self.length += 1
-        self.the_array[self.length] = element
-        self.rise(self.length)  # Restore heap
+    def rise(self, k: int):
+        """
+        Function description:
+            Restores heap property by moving element up the heap.
+        :Input:
+            k (int): Rise element index in MinHeap
+        :Time complexity:
+            O(log N), where N is the number of elements in MinHeap.
+        :Time complexity analysis:
+            Rising an element involves traversing log N height of the MinHeap.
+        :Space complexity:
+            O(N)
+        :Space complexity analysis:
+            Input space of O(N) and auxiliary space of O(1) for heap array.
+        """
+        while k > 1 and self.heap[k][0] < self.heap[k // 2][0]:
+            self.swap(k, k // 2)
+            k //= 2
 
-    def extract(self):
-        # Remove and return smallest element
-        if self.length == 0:
-            raise IndexError("Heap is empty")
-        min_elem = self.the_array[1]  # Smallest is at root
-        self.the_array[1] = self.the_array[self.length]  # Replace root with last
-        self.length -= 1
-        if self.length > 0:
-            self.sink(1)  # Restore heap
-        return min_elem
-
-# --------------------------- Edge Class ---------------------------
-class Edge:
-    def __init__(self, v, cost, time):
-        self.v = v  # Destination vertex
-        self.cost = cost  # Cost to traverse edge
-        self.time = time  # Time to traverse edge
-
-# --------------------------- Vertex Class ---------------------------
-class Vertex:
-    def __init__(self, id):
-        self.id = id  # Unique identifier for the vertex
-        self.edges = []  # List of outgoing edges
-
-    def add_edge(self, v, cost, time):
-        self.edges.append(Edge(v, cost, time))  # Add edge to vertex
-
-# --------------------------- Graph Class ---------------------------
-class Graph:
-    def __init__(self, num_vertices):
-        self.vertices = [Vertex(i) for i in range(num_vertices)]  # Initialize vertices
-
-    def add_edge(self, u, v, cost, time):
-        self.vertices[u].add_edge(v, cost, time)  # Add directed edge
-
-# --------------------------- Train Class ---------------------------
-class Train:
-    def __init__(self, stations, friend_start, location_count):
-        self.arrivals = [float('inf')] * location_count  # fixed-size array to simulate friend location over time
-        idx = 0
-        while stations[idx][0] != friend_start:
-            idx += 1
-        t = 0
-        for i in range(len(stations)):
-            station_id = stations[(idx + i) % len(stations)][0]
-            self.arrivals[station_id] = t  # assigns exact time friend will arrive at this station
-            t += stations[(idx + i) % len(stations)][1]
-
-# class Train:
-#     def __init__(self, stations, friend_start):
-#         self.arrivals = self.compute_arrivals(stations, friend_start)  # Precompute train arrival times
-
-#     def compute_arrivals(self, stations, friend_start):
-#         arrival = {}  # Map from station to arrival time
-#         time_elapsed = 0  # Time counter
-#         idx = 0
-#         while stations[idx][0] != friend_start:
-#             idx += 1  # Locate friend's start station in list
-#         n = len(stations)
-#         for i in range(n):
-#             station_id = stations[(idx + i) % n][0]  # Station ID in loop order
-#             arrival[station_id] = time_elapsed  # Record arrival time
-#             time_elapsed += stations[(idx + i) % n][1]  # Advance by time to next
-#         return arrival  # Return map of station -> arrival time
+    def update(self, location_no, new_cost):
+        """
+        Function description:
+            Updates new cost for a location in MinHeap and restores heap property.
+        :Input:
+            location_no (int): Location to update
+            new_cost (int): New cost to update to the location
+        :Time complexity:
+            O(log N)
+        :Time complexity analysis:
+            Logarithmic time for rise().
+        :Space complexity:
+            O(N), where N is the depth of the MinHeap.
+        :Space complexity analysis:
+            Input space of O(N) and auxiliary space of O(1) for heap array.
+        """
+        position = self.position[location_no]
+        self.heap[position] = (new_cost, location_no)
+        self.rise(position)
 
 
 
-# --------------------------- Pathfinder Class ---------------------------
-class Pathfinder:
-    def __init__(self, graph, start):
-        self.graph = graph
-        self.start = start
-        self.dist = [float('inf')] * len(graph.vertices)  # Distance from start
-        self.time = [float('inf')] * len(graph.vertices)  # Time from start
-        self.prev = [None] * len(graph.vertices)  # Predecessor for path
+def dijkstra_search(locations, start, stations, station_index_array, station_travel_times, friend_start_station):
+    """
+    Function description:
+        Runs Dijkstra's algorithm to determine the shortest cost path to intercept a friend on the train.
+    :Input:
+        locations: List of Location objects representing the city map
+        start: int - The starting location no
+        stations: List of tuples (station_no, time_to_next) representing train stations
+        station_index_array: List[int] - Array mapping location nos to station indices
+        station_travel_times: List[int] - List of travel times between consecutive stations
+        friend_start_station: int - The train station where the friend starts
+    :Output:
+        Tuple[int, int, List[int]] or None - The best interception result (cost, time, path)
+    :Time complexity:
+        O(|R| log |L|)
+    :Time complexity analysis:
+        Where |R| is the number of roads and |L| is the number of locations. Each road is processed once, and heap operations are logarithmic in |L|.
+    :Space complexity:
+        O(|L| + |R|)
+    :Space complexity analysis:
+        Space is used for the locations, roads, and heap structures.
+    """
+    num_locations = len(locations)
+    cost_array = []
 
-    def dijkstra(self):
-        self.dist[self.start] = 0  # Start has distance 0
-        self.time[self.start] = 0  # Start has time 0
-        heap = MinHeap(len(self.graph.vertices))  # Min heap for priority queue
-        heap.add((0, 0, self.start))  # (cost, time, node)
-        visited = [False] * len(self.graph.vertices)  # Track visited nodes
+    # Initialize each location's cost as infinity except for the start
+    for i in range(num_locations):
+        if i == start:
+            cost_array.append((0, i))  # cost to reach start is 0
+            locations[i].min_cost = 0
+            locations[i].total_time = 0
+        else:
+            cost_array.append((float('inf'), i))
 
-        while not heap.is_empty():
-            cost_u, time_u, u = heap.extract()  # Extract min-cost node
-            if visited[u]:
-                continue  # Skip if already visited
-            visited[u] = True
-            for edge in self.graph.vertices[u].edges:
-                v = edge.v  # Destination vertex
-                new_cost = cost_u + edge.cost  # Cumulative cost
-                new_time = time_u + edge.time  # Cumulative time
-                if new_cost < self.dist[v] or (new_cost == self.dist[v] and new_time < self.time[v]):
-                    self.dist[v] = new_cost  # Update best cost
-                    self.time[v] = new_time  # Update best time
-                    self.prev[v] = u  # Track path
-                    heap.add((new_cost, new_time, v))  # Push to heap
+    # Initialize the min heap with cost array
+    min_heap = MinHeap(cost_array)
+    best_result = None  # Store best result: (cost, time, path)
 
-    def recover_path(self, target):
-        path = []
-        while target is not None:
-            path.append(target)  # Follow path backwards
-            target = self.prev[target]  # Move to previous node
-        return path[::-1]  # Reverse to get correct order
+    # Start Dijkstra's loop
+    while not min_heap.is_empty():
+        # Get the location with the current lowest cost
+        current_cost, current_location_no = min_heap.get_min()
+        current_location = locations[current_location_no]
 
-# --------------------------- Main Intercept Function ---------------------------
-def intercept(roads, stations, start, friendStart):
-    location_count = 0  # Track total number of locations
+        # Traverse all outgoing roads from the current location
+        for road in current_location.outgoing_roads:
+            next_location = locations[road.end]
+            new_cost = current_location.min_cost + road.cost
+            new_time = current_location.total_time + road.time
+
+            # Relax the edge if a cheaper path is found
+            if new_cost < next_location.min_cost or (new_cost == next_location.min_cost and new_time < next_location.total_time):
+                next_location.min_cost = new_cost
+                next_location.total_time = new_time
+                next_location.previous_location = current_location
+                min_heap.update(next_location.location_no, new_cost)
+
+                # Check if this next location is a train station
+                station_no = station_index_array[next_location.location_no]
+                if station_no != -1:
+                    # Simulate the friend's position on the train loop
+                    friend_no = station_index_array[friend_start_station]
+                    friend_time = 0
+                    friend_position = friend_no
+
+                    while friend_time <= new_time:
+                        # Interception condition: same location, same time
+                        if stations[friend_position][0] == next_location.location_no and friend_time == new_time:
+                            # Build the path to current location
+                            path = []
+                            current = next_location
+                            while current is not None:
+                                path.insert(0, current.location_no)
+                                current = current.previous_location
+
+                            # Update the best result based on cost and time
+                            if best_result is None or new_cost < best_result[0] or (new_cost == best_result[0] and new_time < best_result[1]):
+                                best_result = (new_cost, new_time, path)
+                            break  # No need to simulate further
+
+                        # Advance friend to next station
+                        friend_time += station_travel_times[friend_position]
+                        friend_position = (friend_position + 1) % len(stations)
+        
+        print(min_heap.heap)
+        print(min_heap.position)
+
+    return best_result
+
+
+def intercept(roads, stations, start, friend_start_station):
+    """
+    Function description:
+        Computes the optimal interception route to meet a friend on a train loop.
+    :Input:
+        roads: List of tuples (start, end, cost, time) representing the road network
+        stations: List of tuples (station_no, time_to_next) representing train stations
+        start: int - The starting location no
+        friend_start_station: int - The train station where the friend starts
+    :Output:
+        Tuple[int, int, List[int]] or None - The best interception result (cost, time, path)
+    :Time complexity:
+        O(|R| log |L|)
+    :Time complexity analysis:
+        Where |R| is the number of roads and |L| is the number of locations. Dijkstra's algorithm dominates the complexity.
+    :Space complexity:
+        O(|L| + |R|)
+    :Space complexity analysis:
+        Space is used for the locations, roads, and heap structures.
+    """
+    num_locations = 0
+
+    # Find total number of unique locations from road data
     for road in roads:
-        location_count = max(location_count, road[0]+1, road[1]+1)  # Max vertex ID
-    for station in stations:
-        location_count = max(location_count, station[0]+1)
+        from_location = road[0]
+        to_location = road[1]
+        if from_location + 1 > num_locations:
+            num_locations = from_location + 1
+        if to_location + 1 > num_locations:
+            num_locations = to_location + 1
 
-    graph = Graph(location_count)  # Initialize graph
-    for u, v, cost, t in roads:
-        graph.add_edge(u, v, cost, t)  # Add all roads
+    # Create a list of location objects
+    locations = []
+    for i in range(num_locations):
+        new_location = Location(i)
+        locations.append(new_location)
 
-    train = Train(stations, friendStart, location_count)  # Create train simulation
-    pathfinder = Pathfinder(graph, start)  # Path planner
-    pathfinder.dijkstra()  # Run shortest path
+    # Add road connections to each location
+    for i in range(len(roads)):
+        from_loc, to_loc, cost, time = roads[i]
+        road = Road(from_loc, to_loc, cost, time)
+        locations[from_loc].add_road(road)
 
-    best_station = None
-    best_cost = float('inf')
-    best_time = float('inf')
+    # Build station index array and travel times for simulation
+    station_index_array = [-1] * num_locations
+    station_travel_times = [0] * len(stations)
 
-    for station_id in range(location_count):
-        if train.arrivals[station_id] != float('inf') and pathfinder.time[station_id] == train.arrivals[station_id]:
-            if pathfinder.dist[station_id] < best_cost or (pathfinder.dist[station_id] == best_cost and pathfinder.time[station_id] < best_time):
-                best_cost = pathfinder.dist[station_id]
-                best_time = pathfinder.time[station_id]
-                best_station = station_id
+    for i in range(len(stations)):
+        station_no, travel_time = stations[i]
+        station_index_array[station_no] = i
+        station_travel_times[i] = travel_time
 
-    if best_station is None:
-        return None  # No valid interception
+    best_result = dijkstra_search(locations, start, stations, station_index_array, station_travel_times, friend_start_station)
+    # Call the helper function to run Dijkstra and return best interception result
 
-    route = pathfinder.recover_path(best_station)  # Recover path
-    return (best_cost, best_time, route)  # Return result
+    return best_result
 
-# --------------------------- Test Case ---------------------------
-if __name__ == "__main__":
-    # Test example from assignment specification
-    roads = [(6,0,3,1), (6,7,4,3), (6,5,6,2), (5,7,10,5), (4,8,8,5), (5,4,8,2),
-             (8,9,1,2), (7,8,1,3), (8,3,2,3), (1,10,5,4), (0,1,10,3), (10,2,7,2),
-             (3,2,15,2), (9,3,2,2), (2,4,10,5)]
-    stations = [(0,1), (5,1), (4,1), (3,1), (2,1), (1,1)]
-    start = 6
-    friendStart = 0
-    print(intercept(roads, stations, start, friendStart))  # Expected: (7, 9, [6, 7, 8, 3])
+
+
+
+# Example Test Case (from PDF)
+roads = [(6,0,3,1), (6,7,4,3), (6,5,6,2), (5,7,10,5), (4,8,8,5), (5,4,8,2),
+         (8,9,1,2), (7,8,1,3), (8,3,2,3), (1,10,5,4), (0,1,10,3), (10,2,7,2),
+         (3,2,15,2), (9,3,2,2), (2,4,10,5)]
+stations = [(0,1), (5,1), (4,1), (3,1), (2,1), (1,1)]
+start = 6
+friendStart = 0
+print(intercept(roads, stations, start, friendStart))
+# Expected: (7, 9, [6, 7, 8, 3])

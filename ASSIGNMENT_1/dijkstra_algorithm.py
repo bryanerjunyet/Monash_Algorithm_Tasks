@@ -1,4 +1,4 @@
-def dijkstra_2(self, source_id):
+def dijkstra(self, source_id):
     class MinHeap(Generic[T]):
 
         def __init__(self, input_array, position_array) -> None:
@@ -65,34 +65,85 @@ def dijkstra_2(self, source_id):
             self.array[position] = (new_distance, vertex_id)
             self.rise(position)
 
+    # Reset graph's vertices to initial state
     self.reset()
 
+    # Create MinHeap
     position_array = [None] * len(self.vertices)
     input_array = [None] * len(self.vertices)
+    # Initialise corresponding cost for each vertex
     for i in range(len(self.vertices)):
         vertex = self.vertices[i]
+        # Start point set to 0
         if vertex.id == source_id:
             input_array[i] = (0, vertex.id)
             vertex.distance = 0
+        # All other vertices set to infinity
         else:
             input_array[i] = (float('inf'), vertex.id)
         position_array[i] = i+1
     min_heap = MinHeap(input_array, position_array)
 
+    # Get minimum element from heap
     while not min_heap.is_empty():
         u_id = min_heap.extract()[1]
         u_vertex = self.vertices[u_id]
 
+        # Get extended vertices for potential minimum element (via outgoing edges)
         for edge in u_vertex.edges:
+            # Get the vertex
             v_id = edge.v
             v_vertex = self.vertices[v_id]
-
+            # Get current vertex distance from the route
             v_distance = v_vertex.distance
+            # Get new distance from another route
             new_distance = u_vertex.distance + edge.w
+            # new route shorter than current chosen route
             if v_distance > new_distance:
                 v_vertex.previous = u_vertex
                 v_vertex.distance = new_distance
+                # Update new vertex in heap
                 min_heap.update(v_id, new_distance)
+
+class Graph:
+    def __init__(self, vertices_count):
+        self.vertices = [None] * vertices_count
+        for i in range(vertices_count):
+            self.vertices[i] = Vertex(i)
+
+        # Matrix
+        # self.matrix = [None] * vertices_count
+        # for i in range(vertices_count):
+        #     self.matrix[i] = [None] * vertices_count
+
+    def add_edges(self, edges: list, directed=True):
+        for edge in edges:
+            u = edge[0]
+            v = edge[1]
+            if len(edge) == 3:
+                w = edge[2]
+            else:
+                w = None
+            new_edge_uv = Edge(u, v, w)
+            # Add the new Edge from u to v into u
+            vertex_u = self.vertices[u]
+            vertex_u.add_edge(new_edge_uv)
+            # If the edge is not directed, add a new Edge from v to u into v
+            if not directed:
+                new_edge_vu = Edge(v, u, w)
+                vertex_v = self.vertices[v]
+                vertex_v.add_edge(new_edge_vu)
+
+    def __str__(self):
+        result_str = "\n".join(map(str, self.vertices))
+        return result_str
+    
+    def reset(self):
+        for vertex in self.vertices:
+            vertex.discovered = False
+            vertex.visited = False
+            vertex.distance = float('inf')
+            vertex.previous = None
 
 class Edge:
     def __init__(self, u: int, v: int, w: int=None):

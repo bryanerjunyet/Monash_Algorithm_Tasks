@@ -38,6 +38,15 @@ class Road:
         self.end = end
         self.cost = cost
         self.time = time
+    
+    def __str__(self):
+        """
+        Function description:
+            Returns a string representation of the Road object.
+        :Output:
+            str - A string representation descripting Road in the format "start --(cost, time)--> end"
+        """
+        return f"{self.start} --(cost: {self.cost}, time: {self.time})--> {self.end}"
 
 
 class Location:
@@ -60,10 +69,23 @@ class Location:
             Constant space for input and auxiliary.
         """
         self.location_no = location_no
-        self.outgoing_roads = []  
-        self.min_cost = float('inf')  # minimum cost to reach this location
-        self.total_time = float('inf')  # time taken to reach this location
-        self.previous_location = None  # pointer to reconstruct path
+        self.outgoing_roads = []
+        self.cost = float('inf')  # minimum cost to reach this location
+        self.time = float('inf')  # time taken to reach this location
+        self.visited = False  # flag to check if location is visited
+        self.previous_location = None  # pointer to reconstruct route
+    
+    def __str__(self):
+        """
+        Function description:
+            Returns a string representation of the Location object.
+        :Output:
+            str - A string descripting the location and its outgoing roads.
+        """
+        description = f"Location {self.location_no}"
+        for road in self.outgoing_roads:
+            description += f"\n• {str(road)}"
+        return description
 
     def add_road(self, road) -> None:
         """
@@ -165,7 +187,7 @@ class MinHeap:
         print(self.heap)
         print(self.position)
         # Perform bottom-up operation
-        for i in range(self.length // 2, 0, -1):
+        for i in range(self.length//2, 0, -1):
             self.sink(i)
 
     def get_min(self) -> tuple [int, int]:
@@ -185,20 +207,29 @@ class MinHeap:
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1) for heap array.
         """
-        if self.length == 0:
-            raise IndexError("Heap is empty")
+        if self.is_empty():
+            raise IndexError("Heap is empty.")
+        print("----Heap----")
+        print("MinHeap:", self.heap)
         minimum = self.heap[1]
-        self.swap(1, self.length)
+        print("Minimum:", minimum)
+
+        # Swap the root with the last element
+        self.heap[1], self.heap[self.length] = self.heap[self.length], self.heap[1]
+        self.position[self.heap[1][1]], self.position[self.heap[self.length][1]] = 1, self.length
+
         self.length -= 1
+        print("After swap:", self.heap)
         self.sink(1)
+        print("After sink:", self.heap)
         return minimum
     
-    def smallest_child(self, k: int) -> int:
+    def smallest_child(self, index: int) -> int:
         """
         Function description:
             Find smallest child of a given parent node in MinHeap.
         :Input:
-            k (int): Parent node index in MinHeap
+            index (int): Parent node index in MinHeap
         :Output:
             int - Smallest child node index
         :Time complexity:
@@ -210,38 +241,21 @@ class MinHeap:
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1) for heap array.
         """
-        if 2 * k == self.length or self.heap[2 * k][0] < self.heap[2 * k + 1][0]:
-            return 2 * k
+        left = 2 * index
+        right = left + 1
+        smallest = 0
+        if left == self.length or self.heap[left][0] < self.heap[right][0]:
+            smallest = left
         else:
-            return 2 * k + 1
-    
-    def swap(self, i: int, j: int) -> None:
-        """
-        Function description:
-            Swaps two elements in heap array and updates positions in the position array.
-        :Input:
-            i (int): First element index to swap
-            j (int): Second element index to swap
-        :Time complexity:
-            O(1)
-        :Time complexity analysis:
-            Constant time for reassigning of values in both heap and position arrays.
-        :Space complexity:
-            O(N), where N is the number of input locations.
-        :Space complexity analysis:
-            Input space of O(N) and auxiliary space of O(1) for heap and position arrays.
-        """
-        # Swap elements in heap array
-        self.heap[i], self.heap[j] = self.heap[j], self.heap[i]
-        # Update positions in position array
-        self.position[self.heap[i][1]], self.position[self.heap[j][1]] = i, j
+            smallest = right
+        return smallest
 
-    def sink(self, k: int):
+    def sink(self, index: int):
         """
         Function description:
             Restores heap property by moving element down the heap.
         :Input:
-            k (int): Index of the element to sink
+            index (int): Index of the element to sink
         :Time complexity:
             O(log N), where N is the number of elements in MinHeap.
         :Time complexity analysis:
@@ -251,19 +265,23 @@ class MinHeap:
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1) for heap array.
         """
-        while 2 * k <= self.length:
-            child = self.smallest_child(k)
-            if self.heap[k][0] <= self.heap[child][0]:
+        while 2 * index <= self.length:
+            smallest = self.smallest_child(index)
+            if self.heap[index][0] <= self.heap[smallest][0]:
                 break
-            self.swap(k, child)
-            k = child
+            else:
+                # Swap the current element with its smallest child
+                self.heap[index], self.heap[smallest] = self.heap[smallest], self.heap[index]
+                self.position[self.heap[index][1]], self.position[self.heap[smallest][1]] = index, smallest
 
-    def rise(self, k: int):
+            index = smallest
+
+    def rise(self, index: int):
         """
         Function description:
             Restores heap property by moving element up the heap.
         :Input:
-            k (int): Rise element index in MinHeap
+            index (int): Rise element index in MinHeap
         :Time complexity:
             O(log N), where N is the number of elements in MinHeap.
         :Time complexity analysis:
@@ -273,9 +291,15 @@ class MinHeap:
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1) for heap array.
         """
-        while k > 1 and self.heap[k][0] < self.heap[k // 2][0]:
-            self.swap(k, k // 2)
-            k //= 2
+        while index > 1:
+            parent = index // 2
+            if self.heap[index][0] < self.heap[parent][0]:
+                # Swap the current element with its parent
+                self.heap[index], self.heap[parent] = self.heap[parent], self.heap[index]
+                self.position[self.heap[index][1]], self.position[self.heap[parent][1]] = index, parent
+                index = parent
+            else:
+                break
 
     def update(self, location_no, new_cost):
         """
@@ -299,7 +323,7 @@ class MinHeap:
 
 
 
-def dijkstra_search(locations, start, stations, station_index_array, station_travel_times, friend_start_station):
+def dijkstra_search(locations, start, stations, station_position, station_duration, friend_start):
     """
     Function description:
         Runs Dijkstra's algorithm to determine the shortest cost path to intercept a friend on the train.
@@ -307,11 +331,11 @@ def dijkstra_search(locations, start, stations, station_index_array, station_tra
         locations: List of Location objects representing the city map
         start: int - The starting location no
         stations: List of tuples (station_no, time_to_next) representing train stations
-        station_index_array: List[int] - Array mapping location nos to station indices
-        station_travel_times: List[int] - List of travel times between consecutive stations
-        friend_start_station: int - The train station where the friend starts
+        station_position: List[int] - Array mapping location nos to station indices
+        station_duration: List[int] - List of travel times between consecutive stations
+        friend_start: int - The train station where the friend starts
     :Output:
-        Tuple[int, int, List[int]] or None - The best interception result (cost, time, path)
+        Tuple[int, int, List[int]] or None - The best interception result (cost, time, route)
     :Time complexity:
         O(|R| log |L|)
     :Time complexity analysis:
@@ -321,75 +345,88 @@ def dijkstra_search(locations, start, stations, station_index_array, station_tra
     :Space complexity analysis:
         Space is used for the locations, roads, and heap structures.
     """
-    num_locations = len(locations)
-    cost_array = []
+    intercept_route = None 
+    location_total = len(locations)
+    location_cost = []
 
-    # Initialize each location's cost as infinity except for the start
-    for i in range(num_locations):
-        if i == start:
-            cost_array.append((0, i))  # cost to reach start is 0
-            locations[i].min_cost = 0
-            locations[i].total_time = 0
-        else:
-            cost_array.append((float('inf'), i))
+    # Initialise corresponding cost for each location
+    for location_no in range(location_total):
+        if location_no != start:
+            location_cost.append((float('inf'), location_no))
+        else: # start location cost and time only 0, the rest unsure
+            location_cost.append((0, location_no))  
+            locations[location_no].cost = 0
+            locations[location_no].time = 0
+    # Construction of MinHeap arranged by minimum cost
+    location_heap = MinHeap(location_cost)
 
-    # Initialize the min heap with cost array
-    min_heap = MinHeap(cost_array)
-    best_result = None  # Store best result: (cost, time, path)
+    while not location_heap.is_empty():
+        # Choose location with lowest cost
+        current_cost, location_no = location_heap.get_min()
+        chosen_location = locations[location_no]
+        current_time = chosen_location.time
 
-    # Start Dijkstra's loop
-    while not min_heap.is_empty():
-        # Get the location with the current lowest cost
-        current_cost, current_location_no = min_heap.get_min()
-        current_location = locations[current_location_no]
+        if chosen_location.visited:
+            continue
+        chosen_location.visited = True
 
-        # Traverse all outgoing roads from the current location
-        for road in current_location.outgoing_roads:
+        # Visit each outgoing roads
+        for road in chosen_location.outgoing_roads:
+            new_cost = current_cost + road.cost
+            new_time = current_time + road.time
             next_location = locations[road.end]
-            new_cost = current_location.min_cost + road.cost
-            new_time = current_location.total_time + road.time
+            next_location_no = next_location.location_no
+            another_cost = next_location.cost
+            another_time = next_location.time
 
-            # Relax the edge if a cheaper path is found
-            if new_cost < next_location.min_cost or (new_cost == next_location.min_cost and new_time < next_location.total_time):
-                next_location.min_cost = new_cost
-                next_location.total_time = new_time
-                next_location.previous_location = current_location
-                min_heap.update(next_location.location_no, new_cost)
+            # New cost or time lesser than current
+            if (next_location.visited == False) and (new_cost <= another_cost) and (new_time < another_time):
+                next_location.cost = new_cost
+                next_location.time = new_time
+                next_location.previous_location = chosen_location
+                location_heap.update(next_location.location_no, new_cost)
 
-                # Check if this next location is a train station
-                station_no = station_index_array[next_location.location_no]
-                if station_no != -1:
-                    # Simulate the friend's position on the train loop
-                    friend_no = station_index_array[friend_start_station]
+                station_no = station_position[next_location_no]
+
+                if station_no != -1: # Train station
+                    start_no = station_position[friend_start]
                     friend_time = 0
-                    friend_position = friend_no
+                    friend_position = start_no
 
+                    # Simulate friend's position from start to the location
                     while friend_time <= new_time:
-                        # Interception condition: same location, same time
+                        # Intercept !!!! when same location, same time
                         if stations[friend_position][0] == next_location.location_no and friend_time == new_time:
-                            # Build the path to current location
-                            path = []
-                            current = next_location
-                            while current is not None:
-                                path.insert(0, current.location_no)
-                                current = current.previous_location
+                            location = next_location
+                            route = []
+                            # Backtrack previous locations to build route
+                            while location is not None:
+                                route.insert(0, location.location_no)
+                                location = location.previous_location
 
-                            # Update the best result based on cost and time
-                            if best_result is None or new_cost < best_result[0] or (new_cost == best_result[0] and new_time < best_result[1]):
-                                best_result = (new_cost, new_time, path)
-                            break  # No need to simulate further
+                            # Best result for least cost
+                            if (intercept_route is None) or (new_cost < intercept_route[0]):
+                                intercept_route = (new_cost, new_time, route)
+                            # Best result for least time when same cost
+                            elif new_cost == intercept_route[0]:
+                                if new_time < intercept_route[1]:
+                                    intercept_route = (new_cost, new_time, route)
+                            break  # Stop simulation
 
-                        # Advance friend to next station
-                        friend_time += station_travel_times[friend_position]
+                        # Move friend to next station
+                        friend_time += station_duration[friend_position]
                         friend_position = (friend_position + 1) % len(stations)
+
+                else: # Not a station, continue next road
+                    continue
         
-        print(min_heap.heap)
-        print(min_heap.position)
+        print(location_heap.heap)
+        print(location_heap.position)
 
-    return best_result
+    return intercept_route
 
 
-def intercept(roads, stations, start, friend_start_station):
+def intercept(roads, stations, start, friend_start):
     """
     Function description:
         Computes the optimal interception route to meet a friend on a train loop.
@@ -397,9 +434,9 @@ def intercept(roads, stations, start, friend_start_station):
         roads: List of tuples (start, end, cost, time) representing the road network
         stations: List of tuples (station_no, time_to_next) representing train stations
         start: int - The starting location no
-        friend_start_station: int - The train station where the friend starts
+        friend_start: int - The train station where the friend starts
     :Output:
-        Tuple[int, int, List[int]] or None - The best interception result (cost, time, path)
+        Tuple[int, int, List[int]] or None - The best interception result (cost, time, route)
     :Time complexity:
         O(|R| log |L|)
     :Time complexity analysis:
@@ -409,42 +446,43 @@ def intercept(roads, stations, start, friend_start_station):
     :Space complexity analysis:
         Space is used for the locations, roads, and heap structures.
     """
-    num_locations = 0
-
-    # Find total number of unique locations from road data
-    for road in roads:
-        from_location = road[0]
-        to_location = road[1]
-        if from_location + 1 > num_locations:
-            num_locations = from_location + 1
-        if to_location + 1 > num_locations:
-            num_locations = to_location + 1
-
-    # Create a list of location objects
     locations = []
-    for i in range(num_locations):
+    total_location = 0
+
+    print("Roads:", roads)
+    # Total number of locations
+    for road in roads:
+        print(road)
+        starting = road[0]
+        ending = road[1]
+        total_location = max(total_location, starting+1, ending+1)
+    print("Total locations:", total_location)
+
+    # Construction of all locations
+    for i in range(total_location):
         new_location = Location(i)
         locations.append(new_location)
 
-    # Add road connections to each location
+    # Construction of roads for each location
     for i in range(len(roads)):
-        from_loc, to_loc, cost, time = roads[i]
-        road = Road(from_loc, to_loc, cost, time)
-        locations[from_loc].add_road(road)
+        starting, ending, cost, time = roads[i]
+        road = Road(starting, ending, cost, time)
+        locations[starting].add_road(road)
 
-    # Build station index array and travel times for simulation
-    station_index_array = [-1] * num_locations
-    station_travel_times = [0] * len(stations)
+    # Build station position and travel times arrays for freinds simulation
+    station_position = [-1] * total_location
+    station_duration = [0] * len(stations)
 
     for i in range(len(stations)):
         station_no, travel_time = stations[i]
-        station_index_array[station_no] = i
-        station_travel_times[i] = travel_time
+        # just storing random numbers to indicate is a station
+        station_position[station_no] = i 
+        # store travel time between stations
+        station_duration[i] = travel_time
 
-    best_result = dijkstra_search(locations, start, stations, station_index_array, station_travel_times, friend_start_station)
-    # Call the helper function to run Dijkstra and return best interception result
+    intercept_route = dijkstra_search(locations, start, stations, station_position, station_duration, friend_start)
 
-    return best_result
+    return intercept_route
 
 
 
@@ -456,5 +494,12 @@ roads = [(6,0,3,1), (6,7,4,3), (6,5,6,2), (5,7,10,5), (4,8,8,5), (5,4,8,2),
 stations = [(0,1), (5,1), (4,1), (3,1), (2,1), (1,1)]
 start = 6
 friendStart = 0
+
+# roads = [(0,1,35,7), (1,2,5,4), (2,0,35,6), (0,4,10,5), (4,1,22,3),
+#             (1,5,60,4), (5,3,70,2), (3,0,10,7)]
+# stations = [(4,2), (5,1), (3,4)]
+# start = 0
+# friendStart = 3
+
 print(intercept(roads, stations, start, friendStart))
 # Expected: (7, 9, [6, 7, 8, 3])

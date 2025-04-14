@@ -12,6 +12,86 @@ Time Complexity: O(|R| log |L|)
 Space Complexity: O(|L| + |R|)
 """
 
+class City:
+    def __init__(self, roads, stations):
+
+        # Total number of locations
+        total_location = 0
+        for start, end, cost, time in roads:
+            total_location = max(total_location, start+1, end+1)
+        self.total_location = total_location
+
+        # Construction of all locations 
+        self.locations = []
+        for i in range(self.total_location):
+            new_location = Location(i)
+            self.locations.append(new_location)
+
+        # Construction of roads for each location
+        for start, end, cost, time in roads:
+            road = Road(start, end, cost, time)
+            self.locations[start].add_road(road)
+
+        # Total duration of train loop
+        # self.total_train_duration = 0
+        # for station in stations:
+        #     travel_time = station[1]
+        #     self.total_train_duration += travel_time
+
+        # Construction of train stations info
+        self.stations = stations
+        self.station_position = [-1] * total_location
+        self.station_duration = [0] * len(stations)
+        for i in range(len(stations)):
+            station_no, travel_time = stations[i]
+            self.station_position[station_no] = i
+            self.station_duration[i] = travel_time
+        
+        # Total duration of train loop
+        self.total_train_duration = sum(self.station_duration)
+    
+    def dijkstra_search(self, start):
+        """Run Dijkstra's algorithm to find shortest paths from start location"""
+        location_cost = []
+        
+        # Initialise corresponding cost for each location
+        for location_no in range(len(self.locations)):
+            if location_no != start:
+                location_cost.append((float('inf'), location_no))
+            else: # start location cost and time only 0, the rest unsure
+                location_cost.append((0, location_no))
+                self.locations[location_no].cost = 0
+                self.locations[location_no].time = 0
+        
+        # Construction of MinHeap arranged by minimum cost
+        location_heap = MinHeap(location_cost)
+        
+        while not location_heap.is_empty():
+            # Choose location with lowest cost
+            current_cost, location_no = location_heap.get_min()
+            chosen_location = self.locations[location_no]
+            current_time = chosen_location.time
+            
+            if chosen_location.visited:
+                continue
+            chosen_location.visited = True
+            
+            # Visit each outgoing roads
+            for road in chosen_location.outgoing_roads:     
+                new_cost = current_cost + road.cost
+                new_time = current_time + road.time
+                next_location = self.locations[road.end]
+                another_cost = next_location.cost
+                another_time = next_location.time
+
+                # New cost or time lesser than current
+                if (next_location.visited == False) and (new_cost <= another_cost) and (new_time < another_time):
+                    next_location.cost = new_cost
+                    next_location.time = new_time
+                    next_location.previous_location = chosen_location
+                    location_heap.update(next_location.location_no, new_cost)
+        
+
 class Road:
     """
     This class represents a road between two locations.
@@ -321,115 +401,9 @@ class MinHeap:
         self.heap[position] = (new_cost, location_no)
         self.rise(position)
 
-
-
-def dijkstra_search(locations, start, stations, station_position, station_duration, friend_start):
-    """
-    Function description:
-        Runs Dijkstra's algorithm to determine the shortest cost path to intercept a friend on the train.
-    :Input:
-        locations: List of Location objects representing the city map
-        start: int - The starting location no
-        stations: List of tuples (station_no, time_to_next) representing train stations
-        station_position: List[int] - Array mapping location nos to station indices
-        station_duration: List[int] - List of travel times between consecutive stations
-        friend_start: int - The train station where the friend starts
-    :Output:
-        Tuple[int, int, List[int]] or None - The best interception result (cost, time, route)
-    :Time complexity:
-        O(|R| log |L|)
-    :Time complexity analysis:
-        Where |R| is the number of roads and |L| is the number of locations. Each road is processed once, and heap operations are logarithmic in |L|.
-    :Space complexity:
-        O(|L| + |R|)
-    :Space complexity analysis:
-        Space is used for the locations, roads, and heap structures.
-    """
-    intercept_route = None 
-    location_total = len(locations)
-    location_cost = []
-
-    # Initialise corresponding cost for each location
-    for location_no in range(location_total):
-        if location_no != start:
-            location_cost.append((float('inf'), location_no))
-        else: # start location cost and time only 0, the rest unsure
-            location_cost.append((0, location_no))  
-            locations[location_no].cost = 0
-            locations[location_no].time = 0
-    # Construction of MinHeap arranged by minimum cost
-    location_heap = MinHeap(location_cost)
-
-    while not location_heap.is_empty():
-        # Choose location with lowest cost
-        current_cost, location_no = location_heap.get_min()
-        chosen_location = locations[location_no]
-        current_time = chosen_location.time
-
-        if chosen_location.visited:
-            continue
-        chosen_location.visited = True
-
-        # Visit each outgoing roads
-        for road in chosen_location.outgoing_roads:
-            new_cost = current_cost + road.cost
-            new_time = current_time + road.time
-            next_location = locations[road.end]
-            next_location_no = next_location.location_no
-            another_cost = next_location.cost
-            another_time = next_location.time
-
-            # New cost or time lesser than current
-            if (next_location.visited == False) and (new_cost <= another_cost) and (new_time < another_time):
-                next_location.cost = new_cost
-                next_location.time = new_time
-                next_location.previous_location = chosen_location
-                location_heap.update(next_location.location_no, new_cost)
-
-                station_no = station_position[next_location_no]
-
-                if station_no != -1: # Train station
-                    start_no = station_position[friend_start]
-                    friend_time = 0
-                    friend_position = start_no
-
-                    # Simulate friend's position from start to the location
-                    while friend_time <= new_time:
-                        # Intercept !!!! when same location, same time
-                        if stations[friend_position][0] == next_location.location_no and friend_time == new_time:
-                            location = next_location
-                            route = []
-                            # Backtrack previous locations to build route
-                            while location is not None:
-                                route.insert(0, location.location_no)
-                                location = location.previous_location
-
-                            # Best result for least cost
-                            if (intercept_route is None) or (new_cost < intercept_route[0]):
-                                intercept_route = (new_cost, new_time, route)
-                            # Best result for least time when same cost
-                            elif new_cost == intercept_route[0]:
-                                if new_time < intercept_route[1]:
-                                    intercept_route = (new_cost, new_time, route)
-                            break  # Stop simulation
-
-                        # Move friend to next station
-                        friend_time += station_duration[friend_position]
-                        friend_position = (friend_position + 1) % len(stations)
-
-                else: # Not a station, continue next road
-                    continue
-        
-        print(location_heap.heap)
-        print(location_heap.position)
-
-    return intercept_route
-
-
 def intercept(roads, stations, start, friend_start):
     """
-    Function description:
-        Computes the optimal interception route to meet a friend on a train loop.
+    Computes the optimal interception route to meet a friend on a train loop.
     :Input:
         roads: List of tuples (start, end, cost, time) representing the road network
         stations: List of tuples (station_no, time_to_next) representing train stations
@@ -437,69 +411,75 @@ def intercept(roads, stations, start, friend_start):
         friend_start: int - The train station where the friend starts
     :Output:
         Tuple[int, int, List[int]] or None - The best interception result (cost, time, route)
-    :Time complexity:
-        O(|R| log |L|)
-    :Time complexity analysis:
-        Where |R| is the number of roads and |L| is the number of locations. Dijkstra's algorithm dominates the complexity.
-    :Space complexity:
-        O(|L| + |R|)
-    :Space complexity analysis:
-        Space is used for the locations, roads, and heap structures.
     """
-    locations = []
-    total_location = 0
+    intercept_route = None
 
-    print("Roads:", roads)
-    # Total number of locations
-    for road in roads:
-        print(road)
-        starting = road[0]
-        ending = road[1]
-        total_location = max(total_location, starting+1, ending+1)
-    print("Total locations:", total_location)
+    # Construction of city
+    city = City(roads, stations)
+    city.dijkstra_search(start)
+    
+    # Track friend's position
+    friend_position = -1
+    for i, (station_no, _) in enumerate(city.stations):
+        if station_no == friend_start:
+            friend_position = i
+            break
+    # Friend not found
+    if friend_position == -1:
+        return None
+    
+    # Track each acumulated train duration
+    acum_train_duration = [0] * len(city.stations)
+    duration = 0
+    position = friend_position
+    for i in range(len(city.stations)):
+        acum_train_duration[position] = duration
+        duration += city.station_duration[position]
+        position = (position + 1) % len(city.stations)
+    
+    # Possible interceptions for each train station
+    for station_no, _ in stations:
+        index = city.station_position[station_no]
+        location = city.locations[station_no]
+        
+        # Best intercept time using modulus
+        intercept_time = location.time % city.total_train_duration
+        
+        # Intercept !!!! when same location, same time
+        if acum_train_duration[index] == intercept_time:
+            route = []
+            backtrack = location
+            # Backtrack previous locations to build route
+            while backtrack is not None:
+                route.insert(0, backtrack.location_no)
+                backtrack = backtrack.previous_location
 
-    # Construction of all locations
-    for i in range(total_location):
-        new_location = Location(i)
-        locations.append(new_location)
-
-    # Construction of roads for each location
-    for i in range(len(roads)):
-        starting, ending, cost, time = roads[i]
-        road = Road(starting, ending, cost, time)
-        locations[starting].add_road(road)
-
-    # Build station position and travel times arrays for freinds simulation
-    station_position = [-1] * total_location
-    station_duration = [0] * len(stations)
-
-    for i in range(len(stations)):
-        station_no, travel_time = stations[i]
-        # just storing random numbers to indicate is a station
-        station_position[station_no] = i 
-        # store travel time between stations
-        station_duration[i] = travel_time
-
-    intercept_route = dijkstra_search(locations, start, stations, station_position, station_duration, friend_start)
-
+            # Best result for least cost
+            if (intercept_route is None) or (location.cost < intercept_route[0]):
+                intercept_route = (location.cost, location.time, route)
+            # Best result for least time when same cost
+            elif location.cost == intercept_route[0]:
+                if location.time < intercept_route[1]:
+                    intercept_route = (location.cost, location.time, route)
+    
     return intercept_route
 
 
 
 
 # Example Test Case (from PDF)
-roads = [(6,0,3,1), (6,7,4,3), (6,5,6,2), (5,7,10,5), (4,8,8,5), (5,4,8,2),
-         (8,9,1,2), (7,8,1,3), (8,3,2,3), (1,10,5,4), (0,1,10,3), (10,2,7,2),
-         (3,2,15,2), (9,3,2,2), (2,4,10,5)]
-stations = [(0,1), (5,1), (4,1), (3,1), (2,1), (1,1)]
-start = 6
-friendStart = 0
+# roads = [(6,0,3,1), (6,7,4,3), (6,5,6,2), (5,7,10,5), (4,8,8,5), (5,4,8,2),
+#          (8,9,1,2), (7,8,1,3), (8,3,2,3), (1,10,5,4), (0,1,10,3), (10,2,7,2),
+#          (3,2,15,2), (9,3,2,2), (2,4,10,5)]
+# stations = [(0,1), (5,1), (4,1), (3,1), (2,1), (1,1)]
+# start = 6
+# friendStart = 0
 
-# roads = [(0,1,35,7), (1,2,5,4), (2,0,35,6), (0,4,10,5), (4,1,22,3),
-#             (1,5,60,4), (5,3,70,2), (3,0,10,7)]
-# stations = [(4,2), (5,1), (3,4)]
-# start = 0
-# friendStart = 3
+roads = [(0,1,35,7), (1,2,5,4), (2,0,35,6), (0,4,10,5), (4,1,22,3),
+            (1,5,60,4), (5,3,70,2), (3,0,10,7)]
+stations = [(4,2), (5,1), (3,4)]
+start = 0
+friendStart = 3
 
 print(intercept(roads, stations, start, friendStart))
 # Expected: (7, 9, [6, 7, 8, 3])

@@ -148,10 +148,11 @@ class City:
             Search for the least cost paths from start location across all multiverses.
 
         :Approach description:
-            1. Initialises costs and prepares MinHeap with starting location
-            2. Processes locations in order of increasing cost
-            3. For each location, updates costs to neighboring locations
-            4. Maintains optimal paths considering both cost and time
+            1. Constructs a MinHeap of locations with its costs
+            2. Get the minimum cost location from the heap.
+            3. Visit each outgoing roads from the current location.
+            4. Select the value with the lowest cost and time.
+            5. Update the heap with the new cost and time and continue comparing.
 
         :Input:
             start (int): Starting location number
@@ -160,17 +161,17 @@ class City:
             O(R log L), where R is the number of roads and L is the number of locations.
 
         :Time complexity analysis:
-            - Each location is processed once: O(|L|·T)
-            - Each road is processed once: O(|R|·T)
-            - Heap operations: O(log(|L|·T)) per operation
-            - Dominated by O(|R|·T log(|L|·T)) from heap operations
+            - O(L) to construct heap array for location costs
+            - O(log L) to get the minimum cost location from heap
+            - O(R) to explore each and every outgoing roads
+            - O(log L) to update the heap for each road
+            Thus, the overall time complexity is O(R log L).
 
         :Space complexity:
-            O(|L|·T + |R|·T)
+            O(R + L), where R is the number of roads and L is the number of locations.
 
         :Space complexity analysis:
-            - O(|L|·T) for storing location costs and visited flags
-            - O(|R|·T) for storing roads
+            Input space of O(R) for the number of roads and auxiliary space of O(L) for location_cost. 
 
         """
         
@@ -199,7 +200,7 @@ class City:
                 another_time = next_location.time
 
                 # New cost or time lesser than current
-                if not next_location.visited and (new_cost < another_cost or (new_cost == another_cost and new_time < another_time)):
+                if (next_location.visited == False) and (new_cost < another_cost or (new_cost == another_cost and new_time < another_time)):
                     next_location.cost = new_cost
                     next_location.time = new_time
                     next_location.previous_location = chosen_location
@@ -214,7 +215,7 @@ class City:
             start (int): The starting location number
 
         :Output:
-            list[tuple]: A list of tuples (cost, location_no) for initializing the MinHeap
+            list[tuple]: A list of tuples (cost, location_no) for initialising the MinHeap
         
         :Time complexity:
             O(L), where L is the number of locations.
@@ -223,7 +224,10 @@ class City:
             Linear time for reassigning each location's cost and time.
         
         :Space complexity:
-            Input space of O(1) for the single input of start location and auxiliary space of O(L) for the location_cost list.
+            O(L), where L is the number of locations.
+
+        :Space complexity analysis:
+            Input space of O(L) for the number of locations and auxiliary space of O(L) for the location_cost list.
 
         """
         location_cost = []
@@ -348,7 +352,7 @@ class Location:
             O(N), where N is the number of roads.
 
         :Space complexity analysis:
-            Input space of O(N) and auxiliary space of O(1).
+            Input space of O(N) and auxiliary space of O(N).
 
         """
         self.outgoing_roads.append(road)
@@ -376,7 +380,7 @@ class MinHeap:
             O(N), where N is the number of input locations.
 
         :Space complexity analysis:
-            Input space of O(N) and auxiliary space of O(1) for heap and position arrays.
+            Input space of O(N) and auxiliary space of O(N) for heap and position arrays.
 
         """
         self.length = len(locations)
@@ -428,7 +432,7 @@ class MinHeap:
             O(N), where N is the number of input locations.
 
         :Space complexity analysis:
-            Input space of O(N) and auxiliary space of O(1) for heap array.
+            Input space of O(N) and auxiliary space of O(1).
 
         """
         return len(self) == 0
@@ -451,7 +455,7 @@ class MinHeap:
             O(N), where N is the number of input locations.
 
         :Space complexity analysis:
-            Input space of O(N) and auxiliary space of O(1) for heap and position arrays.
+            Input space of O(N) and auxiliary space of O(1).
 
         """
         # Add input data into the heap
@@ -469,6 +473,7 @@ class MinHeap:
 
         :Input:
             None
+            
         :Output:
             Tuple[int, int] - Minimum cost and corresponding location
 
@@ -479,10 +484,10 @@ class MinHeap:
             Logarithmic time for sink().
 
         :Space complexity:
-            O(N), where N is the depth of the MinHeap.
+            O(1)
             
         :Space complexity analysis:
-            Input space of O(N) and auxiliary space of O(1) for heap array.
+            Input space of O(1) and auxiliary space of O(1).
 
         """
         if self.is_empty():
@@ -515,10 +520,10 @@ class MinHeap:
             Constant time for comparisons to find smallest child.
 
         :Space complexity:
-            O(N), where N is the depth of the MinHeap.
+            O(1)
 
         :Space complexity analysis:
-            Input space of O(N) and auxiliary space of O(1) for heap array.
+            Input space of O(1) and auxiliary space of O(1).
 
         """
         left = 2 * index
@@ -545,10 +550,10 @@ class MinHeap:
             Sinking an element involves traversing log N depth of the MinHeap.
 
         :Space complexity:
-            O(N)
+            O(1)
 
         :Space complexity analysis:
-            Input space of O(N) and auxiliary space of O(1) for heap array.
+            Input space of O(1) and auxiliary space of O(1).
 
         """
         while 2 * index <= self.length:
@@ -577,10 +582,10 @@ class MinHeap:
             Rising an element involves traversing log N height of the MinHeap.
 
         :Space complexity:
-            O(N)
+            O(1)
 
         :Space complexity analysis:
-            Input space of O(N) and auxiliary space of O(1) for heap array.
+            Input space of O(1) and auxiliary space of O(1).
 
         """
         while index > 1:
@@ -609,10 +614,10 @@ class MinHeap:
             Logarithmic time for rise().
 
         :Space complexity:
-            O(N), where N is the depth of the MinHeap.
+            O(1)
 
         :Space complexity analysis:
-            Input space of O(N) and auxiliary space of O(1) for heap array.
+            Input space of O(1) and auxiliary space of O(1).
 
         """
         position = self.position[location_no]
@@ -648,15 +653,17 @@ def intercept(roads, stations, start, friend_start):
         O(R log L), where R is the number of roads and L is the number of locations.
 
     :Time complexity analysis:
-        Where R is the number of roads and L is the number of locations across all multiverses.
-        This comes from the Dijkstra's algorithm, which processes each location and edge once,
-        and uses a MinHeap for efficient extraction and update.
+        - O(R + L) for the construction of the city and the roads.
+        - O(R log L) for the dijkstra search.
+        - O(S) for the search of the best intercept route.
+        - O(L) for the backtrack of the route.
+        Thus, the overall time complexity is O(R log L).
 
     :Space complexity:
         O(R + L), where R is the number of roads and L is the number of locations.
 
     :Space complexity analysis:
-        Input space of O(R + L) for the input list of roads and locations to be constructed by City() constructor, 
+        Input space of O(R) for the input list of roads to be constructed by City() constructor, 
         and auxiliary space of O(R + L) for the storing of roads and locations in the city.
 
     """

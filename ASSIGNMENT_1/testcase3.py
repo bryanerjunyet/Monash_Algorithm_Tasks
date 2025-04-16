@@ -1,0 +1,390 @@
+import unittest
+from assignment1 import intercept
+
+class TestAllInterceptCases(unittest.TestCase):
+
+    def test_example1(self):
+        roads = [(6,0,3,1), (6,7,4,3), (6,5,6,2), (5,7,10,5), (4,8,8,5), (5,4,8,2),
+                 (8,9,1,2), (7,8,1,3), (8,3,2,3), (1,10,5,4), (0,1,10,3), (10,2,7,2),
+                 (3,2,15,2), (9,3,2,2), (2,4,10,5)]
+        stations = [(0,1), (5,1), (4,1), (3,1), (2,1), (1,1)]
+        start = 6
+        friendStart = 0
+        output = (7, 9, [6,7,8,3])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, output)
+    
+    def test_example2(self):
+        roads = [(0,1,35,3), (1,2,5,2), (2,0,35,4), (0,4,10,1), (4,1,22,2),
+                  (1,5,65,1), (5,2,70,1), (2,3,10,1), (3,0,20,3)]
+        stations = [(4,3), (5,2), (3,4)]
+        start = 0
+        friendStart = 4
+        result = intercept(roads, stations, start, friendStart)
+        self.assertIsNone(result)
+
+    def test_example3(self):
+        roads = [(0,1,35,7), (1,2,5,4), (2,0,35,6), (0,4,10,5), (4,1,22,3),
+                 (1,5,60,4), (5,3,70,2), (3,0,10,7)]
+        stations = [(4,2), (5,1), (3,4)]
+        start = 0
+        friendStart = 3
+        output = (160, 39, [0,1,2,0,1,2,0,4])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, output)
+ 
+    def test_example4(self):
+        roads = [(0,1,10,7), (0,2,10,3), (2,0,1,4), (1,0,1,7)]
+        stations = [(2,4), (1,3)]
+        start = 0
+        friendStart = 1
+        output = (10, 3, [0,2])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, output)
+
+    def test1(self):
+        roads = []
+        stations = [(0, 5), (1, 5)]
+        start = 0
+        friendStart = 1
+        result = intercept(roads, stations, start, friendStart)
+        self.assertIsNone(result)
+
+    def test2(self):
+        roads = [
+            (0, 1, 1, 3), (0, 2, 1, 5), (1, 3, 2, 3), (2, 3, 2, 2)
+        ]
+        stations = [(3, 2), (0, 2)]
+        start = 0
+        friendStart = 3
+        result = intercept(roads, stations, start, friendStart)
+        self.assertIsNone(result)
+
+    def test3(self):
+        roads = [(0, 1, 5, 5)]
+        stations = [(1, 3), (0, 3)]
+        start = 0
+        friendStart = 1
+        result = intercept(roads, stations, start, friendStart)
+        self.assertIsNone(result)
+
+    def test4(self):
+        roads = [(0, 1, 2, 2), (1, 2, 2, 2), (2, 0, 2, 2)]
+        stations = [(2, 3), (0, 3)]
+        start = 0
+        friendStart = 0
+        output = (0, 0, [0])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, output)
+
+    def test5(self):
+        roads = [(0, 1, 2, 2)]
+        stations = [(3, 1), (4, 1)]
+        start = 0
+        friendStart = 3
+        result = intercept(roads, stations, start, friendStart)
+        self.assertIsNone(result)
+
+    def test6(self):
+        roads = [(0, 1, 2, 2), (1, 2, 2, 2)]
+        stations = [(5, 2), (6, 2)]
+        start = 0
+        friendStart = 5
+        result = intercept(roads, stations, start, friendStart)
+        self.assertIsNone(result)
+
+    def test7(self):
+        roads = [(0, 1, 2, 2)]
+        stations = [(1, 5), (0, 5)]
+        start = 0
+        friendStart = 1
+        result = intercept(roads, stations, start, friendStart)
+        self.assertIsNone(result)
+
+    def test8(self):
+        roads = [(0, 1, 3, 6)]
+        stations = [(1, 2), (2, 2), (0, 2)]
+        start = 0
+        friendStart = 1
+        output = (3, 6, [0, 1])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, output)
+
+    def test9(self):
+        roads = [
+            (0, 1, 2, 2), (1, 2, 3, 2), (2, 3, 1, 2), (3, 4, 2, 4), (4, 5, 1, 5),
+            (0, 6, 10, 4), (6, 7, 1, 1), (7, 8, 1, 1), (8, 5, 1, 1),
+            (1, 9, 5, 2), (9, 10, 2, 1), (10, 5, 2, 1),
+            (2, 11, 3, 1), (11, 12, 2, 1), (12, 13, 3, 1), (13, 5, 4, 1),
+            (3, 14, 2, 1), (14, 5, 2, 1), (0, 10, 20, 6), (6, 12, 15, 4)
+        ]
+        stations = [(5, 3), (13, 3), (10, 3), (0, 3), (1, 3)]
+        start = 0
+        friendStart = 5
+        output = (9, 15, [0, 1, 2, 3, 4, 5])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, output)
+
+    def test10(self):
+        roads = [(0, 1, 1, 1), (1, 0, 1, 1), (2, 1, 5, 1)]
+        stations = [(0, 1), (1, 1)]
+        start = 2
+        friendStart = 0
+        expected_output = (5, 1, [2, 1])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test11(self):
+        roads = [(0, 1, 35, 3), (1, 0, 1, 1), (2, 0, 10, 5)]
+        stations = [(0, 3), (1, 2)]
+        start = 2
+        friendStart = 0
+        expected_output = (10, 5, [2, 0])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test12(self):
+        roads = [(0, 1, 1, 2), (1, 2, 1, 3), (2, 0, 1, 5), (3, 0, 10, 10)]
+        stations = [(0, 2), (1, 3), (2, 5)]
+        start = 3
+        friendStart = 0
+        expected_output = (10, 10, [3, 0])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test13(self):
+        roads = [(0, 1, 1, 1), (1, 0, 5, 2)]
+        stations = [(0, 1), (1, 1)]
+        start = 1
+        friendStart = 0
+        expected_output = (5, 2, [1, 0])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test14(self):
+        roads = [(0, 1, 1, 2), (1, 2, 1, 3), (2, 0, 1, 5), (3, 2, 10, 5), (3, 0, 5, 1)]
+        stations = [(0, 2), (1, 3), (2, 5)]
+        start = 3
+        friendStart = 0
+        expected_output = (10, 5, [3, 2])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test15(self):
+        roads = [(0, 1, 1, 1), (1, 2, 1, 2), (2, 0, 1, 3), (3, 2, 10, 3), (3, 0, 5, 1)]
+        stations = [(0, 1), (1, 2), (2, 3)]
+        start = 3
+        friendStart = 0
+        expected_output = (10, 3, [3, 2])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test16(self):
+        roads = [(3, 2, 5, 2), (0, 1, 1, 1), (1, 2, 1, 1), (2, 0, 1, 1), (3, 0, 10, 1)]
+        stations = [(0, 1), (1, 1), (2, 1)]
+        start = 3
+        friendStart = 0
+        expected_output = (5, 2, [3, 2])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test17(self):
+        roads = [(0, 1, 3, 1), (1, 2, 3, 1), (2, 0, 3, 1), (0, 3, 10, 5), (2, 4, 2, 1), (3, 4, 1, 1), (4, 0, 5, 2)]
+        stations = [(3, 2), (4, 2)]
+        start = 0
+        friendStart = 3
+        expected_output = (11, 6, [0, 3, 4])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test18(self):
+        roads = [(0, 1, 1, 1), (1, 2, 1, 1), (2, 0, 5, 2), (1, 0, 2, 1), (2, 1, 2, 1)]
+        stations = [(1, 2), (2, 3)]
+        start = 0
+        friendStart = 1
+        expected_output = (2, 2, [0, 1, 2])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test19(self):
+        roads = [(0, 1, 3, 2), (1, 2, 3, 2), (2, 3, 3, 2), (0, 4, 6, 3), (4, 5, 1, 1), (5, 3, 1, 1), (3, 0, 10, 2)]
+        stations = [(3, 2), (5, 1)]
+        start = 0
+        friendStart = 5
+        expected_output = (26, 12, [0, 1, 2, 3, 0, 4, 5])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test20(self):
+        roads = [(0, 1, 10, 2), (0, 2, 100, 1), (1, 2, 5, 1), (2, 3, 10, 2), (1, 3, 50, 5), (3, 4, 2, 1), (2, 4, 30, 2), (4, 0, 5, 2)]
+        stations = [(3, 2), (4, 2)]
+        start = 0
+        friendStart = 3
+        expected_output = (27, 6, [0, 1, 2, 3, 4])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test21(self):
+        roads = [(0, 1, 2, 1), (1, 2, 2, 1), (2, 3, 2, 1), (3, 1, 1, 1), (3, 4, 2, 1), (4, 5, 2, 1), (5, 0, 10, 3), (2, 5, 5, 2)]
+        stations = [(3, 2), (5, 1)]
+        start = 0
+        friendStart = 3
+        expected_output = (6, 3, [0, 1, 2, 3])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test22(self):
+        roads = [(0, 1, 5, 2), (1, 2, 5, 2), (2, 3, 5, 2), (3, 0, 5, 2), (3, 4, 1, 1), (4, 0, 10, 3), (1, 3, 10, 4)]
+        stations = [(3, 2), (4, 3)]
+        start = 0
+        friendStart = 3
+        expected_output = (16, 7, [0, 1, 3, 4])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test_long_chase(self):
+        import sys
+        rec_lim = sys.getrecursionlimit()
+        sys.setrecursionlimit(2000)
+        roads = [(i, i+1, 3, 5) for i in range(19)] + [(19, 0, 3, 4)]
+        stations = [(i, 5) for i in range(20)]
+        start = 0
+        friend_start = 19
+
+        #1900 edges traversed/95 cycles
+        self.assertEqual(intercept(roads, stations, start, friend_start), (5700, 9405, [i for i in range(20)]*95+[0]))
+        sys.setrecursionlimit(rec_lim)
+
+    def test_1(self):
+        roads = [(0, 2, 10, 3), (1, 2, 5, 2), (2, 1, 15, 5), (2, 0, 12, 10)]
+        stations = [(0, 5), (1, 5)]
+        start = 2
+        friendStart = 0
+        expected_output = (12, 10, [2, 0])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test_2(self):
+        stations_input = [(i, 2) for i in range(20)]
+        start_input = 20
+        friendStart_input = 0
+        roads_input = [(20, 2, 7, 4), (20, 18, 30, 36)] + \
+                      [(i, (i+1)%20, 1, 2) for i in range(20)]
+        expected_output = (7, 4, [20, 2])
+        result = intercept(roads_input, stations_input, start_input, friendStart_input)
+        self.assertEqual(result, expected_output)
+
+    def test_3(self):
+        stations_input = [(i, 5) for i in range(20)]
+        start_input = 20
+        friendStart_input = 0
+        roads_input = [(20, 5, 30, 25), (20, 0, 40, 100)] + \
+                      [(i, (i+1)%20, 1, 1) for i in range(20)]
+        expected_output = (30, 25, [20, 5])
+        result = intercept(roads_input, stations_input, start_input, friendStart_input)
+        self.assertEqual(result, expected_output)
+
+    def test_4(self):
+        roads = [(0, 1, 1, 1), (1, 0, 1, 1),
+                 (2, 3, 1, 1), (3, 2, 1, 1)]
+        stations = [(0, 5), (1, 5)]
+        start = 2
+        friendStart = 0
+        result = intercept(roads, stations, start, friendStart)
+        self.assertIsNone(result)
+
+    def test_5(self):
+        roads = [(0, 1, 10, 3), (1, 2, 20, 10), (2, 0, 8, 4)]
+        stations = [(0, 5), (1, 5), (2, 5)]
+        start = 1
+        friendStart = 0
+        expected_output = (20, 10, [1, 2])
+        result = intercept(roads, stations, start, friendStart)
+        self.assertEqual(result, expected_output)
+
+    def test_hi(self):
+        import math
+        mult = 1000000000000
+        roads = [(0,1,math.inf,7), (0,2,10,3 + 7 * mult), (2,0,1,4), (1,0,1,7)]
+        stations = [(2,4), (1,3)]
+        start = 0
+        friendStart = 1
+
+        self.assertEqual(intercept(roads, stations, start, friendStart), (10, 3 + 7 * mult, [0,2]))
+
+    def test_hi2(self):
+        mult = 1000000000000
+        roads = [(0,1,10,7 + 7 * 5000), (0,2,10,3 + 7 * mult), (2,0,1,4), (1,0,1,7)]
+        stations = [(2,4), (1,3)]
+        start = 0
+        friendStart = 1
+
+        self.assertEqual(intercept(roads, stations, start, friendStart), (10, 7 + 7 * 5000, [0,1]))
+
+    def test_loop_finish(self):
+        roads = [(1,5,2,1),(1,6,11,6),(2,5,6,3),(3,7,1,10),(4,2,4,1),(5,3,8,8),(5,4,20,2),(5,1,4,1),(6,2,9,6),(7,6,15,2)]
+        stations = [(1,3),(2,3),(3,5)]
+        start = 1
+        friend_start = 2
+
+        self.assertEqual(intercept(roads, stations, start, friend_start), (24, 8, [1,5,1,5,1,5,1,5,1]))
+    
+    def test_station_chase(self):
+        roads = [(1,2,2,1),(1,3,50,2),(2,3,3,2),(3,4,5,2),(3,5,15,3),(4,5,1,2),(5,2,4,1)]
+        stations = [(1,1),(2,2),(3,2),(4,2),(5,1)]
+        start = 1
+        friend_start = 2
+
+        self.assertEqual(intercept(roads, stations, start, friend_start), (15, 8, [1,2,3,4,5,2]))
+    
+    def test_equal_costs(self):
+        roads = [(1,2,3,3),(2,5,1,1),(3,4,5,2),(3,1,11,4),(3,2,10,7),(3,5,5,7),(4,1,5,2),(5,2,5,7)]
+        stations = [(1,3),(2,4)]
+        start = 3
+        friend_start = 2
+
+        self.assertEqual(intercept(roads, stations, start, friend_start), (10, 4, [3,4,1]))
+    
+    def test_valid_path(self):
+        roads = [(1,5,1,1),(2,5,4,2),(3,2,3,3),(3,4,2,1),(4,2,1,1),(5,1,5,1)]
+        stations = [(1,2),(2,3)]
+        start = 3
+        friend_start = 1
+
+        self.assertEqual(intercept(roads, stations, start, friend_start), (3,2,[3,4,2]))
+
+    def test_double_road(self):
+        roads = [(0, 1, 5, 5), (0, 1, 5, 5), (1, 2, 5, 5), (2, 0, 5, 5)]
+        stations = [(2, 5), (1, 5)]
+        start = 0
+        friend_start = 2
+        
+        self.assertEqual(intercept(roads, stations, start, friend_start), (5, 5, [0,1]))
+
+    def test_double_road_all(self):
+        roads = [(0, 1, 5, 5), (0, 1, 5, 5), (0, 1, 6, 5), (0, 1, 5, 6), (1, 2, 5, 5), (2, 0, 5, 5)]
+        stations = [(2, 5), (1, 5)]
+        start = 0
+        friend_start = 2
+        
+        self.assertEqual(intercept(roads, stations, start, friend_start), (5, 5, [0,1]))
+
+    def test_short_none(self):
+        roads = [(0, 1, 2, 1), (1, 0, 2, 1)]
+        stations = [(0, 5), (1, 5)]
+        start = 0
+        friend_start = 1
+
+        self.assertIsNone(intercept(roads, stations, start, friend_start))
+
+    def test_short_long(self):
+        roads = [(0, 1, 2, 1), (1, 0, 2, 1)]
+        stations = [(0, 4), (1, 5)]
+        start = 0
+        friend_start = 1
+
+        self.assertEqual(intercept(roads, stations, start, friend_start), (18, 9, [0,1]*5))
+
+
+if __name__ == '__main__':
+    unittest.main()

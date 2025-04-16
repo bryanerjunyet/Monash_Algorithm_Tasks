@@ -1,67 +1,181 @@
 """
-Assignment 1 - Intercepting a Friend on a Train Loop
-This program determines the least cost driving path to intercept a friend who is riding a circular train route.
-The interception must occur at a train station at the exact same time, and you cannot wait at any location.
+:Module description:
+This module is a program for driver to determine the best driving route to intercept your friend who 
+is onboard a circle train line, where the interception happens at a train station at the same time
+with the least cost and earliest time.
 
-Approach:
-- Use Dijkstra's algorithm to explore all possible driving paths.
-- At each train station reached, calculate whether the friend arrives at the same time.
-- Use a MinHeap to ensure efficient cost and time prioritization.
+:Classes:
+City    : A city graph with the concept of multiverse.
+Location: A location in the city, which can be a regular location or a train station.
+Road    : A road between two locations.
+MinHeap : A MinHeap for efficient selection of the minimum cost location.
 
-Time Complexity: O(|R| log |L|)
-Space Complexity: O(|L| + |R|)
 """
 
+__author__ = "Er Jun Yet"
+
+
 class City:
-    def __init__(self, roads, stations):
+    """
+    This is the main class of the module that represents a city graph with multiple time states 
+    or notably known as the multiverse, for each location in reality.
+    :Class description:
+        This is the main class of the module that represents a city graph, consisting of the 
+        entire road network with train stations and incorperating the concept of multiverse,
+        where each location in reality is constructed multiple times at multiple time layers
+        in the multiverse, based on the maximum train loop duration, constructing a larger
+        city graph with the consideration of different multiverse.  
 
-        # Total number of locations
-        total_location = 0
+    :Approach description:
+        The purpose of such multi-city graph to be constructed allows repeated visits to the 
+        same location at different multiverse of time, where each location in reality is cloned
+        into multiple copies of the same location_no, utilising the modulo time concept, depending
+        on the maximum train loop duration. These copies of the same location will all be interconnected
+        using the same road information. Below is an example of how the multiverse is constructed:
+
+              
+                --> (A2) ---  [Multiverse A] = where the location 0 us at multiverse A
+               /            \ 
+         5,4  /              \    35,6  
+             /                ----------> (B0)  [Multiverse B] = where the location 0 is not visited back, 
+            (A1)<--------------(A0)        /                     but transitioning to new location 0's multiverse B
+                      35,7                /     
+           (B1)<-------------------------/
+                      35,7
+
+        With this modification of multi-city, dijkstra algorithm can be utilised easily to search for 
+        all possible routes over time, allowing repeated routes that involves looping back.
+
+    :Attributes:
+        total_reality_location      (int)       : Total number of all locations in reality.
+        total_multiverse            (int)       : Total number of all multiverse layers.
+        total_multiverse_locations  (int)       : Total number of all locations in all multiverse.
+        multiverse_locations   (List[Location]) : A list of all Location objects in multiverse.
+        total_train_duration        (int)       : Total time for a train to loop through all stations.
+        acum_train_duration       (List[int])   : Accumulated time for each station in the train loop.
+        multiverse_count            (int)       : Equals total_train_duration. Represents total temporal layers.
+        total_location              (int)       : Total number of nodes across all multiverse layers.
+        locations           (List[Location])    : All Location nodes in the multiverse graph.
+        station_position        (List[int])     : Maps each location number to its index in the station list.
+
+    """
+    def __init__(self, roads, stations, friend_start):
+        """
+        :Function description:
+            A City constructor that constructs a city graph with the concept of multiverse.
+
+        :Input:
+            roads       (List[Tuple[int, int, int, int]]) : A list of roads in the city, where each road contains the start, end, cost, time of this road.
+            stations    (List[Tuple[int, int]])           : A list of train stations in the city, where each station contains the station_no and time_travel of this station.
+            friend_start (int)                            : Starting location number of the friend (on the train).
+
+        :Time complexity:
+            O(R + S + ML + MR) --> O(MR + ML) --> O(R + L)
+            where R is the number of roads, L is the number of locations and M is number of multiverse layers.
+
+        :Time complexity analysis:
+            - O(R) to find the total number of locations in reality.
+            - O(S) to process each train stations duration, and find the the total train loop duration, 
+              accumulated train duration and track friend's position.
+            - O(ML) to construct locations across multiverse.
+            - O(MR) to construct roads across multiverse.
+            Thus, the total time complexity is O(R + S + ML + MR). 
+            However, as the total number of stations, S is a constant, with at most 20 stations in a city (according to specification)
+            and M is a constant too, with at most 100 minutes of train loop duration, the overall time complexity can be simplified to O(R + L).
+
+        :Space complexity:
+            O(ML + MR) --> O(L + R) 
+            where R is the number of roads, L is the number of locations and M is number of multiverse layers.
+
+        :Space complexity analysis:
+            Input space of O(L + R) for the input list of roads and locations/ stations to be constructed by City() constructor,
+            and auxiliary space of O(ML + MR) for the storing of roads and locations in the city across all multiverse, which should be
+            a constant, depending on the maximum duration of the entire train loop. Thus, the dominating space complexity is O(L + R).
+            
+        """
+        # Total number of locations in reality
+        total_reality_location = 0
         for start, end, cost, time in roads:
-            total_location = max(total_location, start+1, end+1)
-        self.total_location = total_location
-
-        # Construction of all locations 
-        self.locations = []
-        for i in range(self.total_location):
-            new_location = Location(i)
-            self.locations.append(new_location)
-
-        # Construction of roads for each location
-        for start, end, cost, time in roads:
-            road = Road(start, end, cost, time)
-            self.locations[start].add_road(road)
-
-        # Total duration of train loop
-        # self.total_train_duration = 0
-        # for station in stations:
-        #     travel_time = station[1]
-        #     self.total_train_duration += travel_time
+            total_reality_location = max(total_reality_location, start+1, end+1)
+        self.total_reality_location = total_reality_location
 
         # Construction of train stations info
-        self.stations = stations
-        self.station_position = [-1] * total_location
-        self.station_duration = [0] * len(stations)
+        station_duration = [0] * len(stations)
         for i in range(len(stations)):
             station_no, travel_time = stations[i]
-            self.station_position[station_no] = i
-            self.station_duration[i] = travel_time
+            station_duration[i] = travel_time
         
         # Total duration of train loop
-        self.total_train_duration = sum(self.station_duration)
+        self.total_train_duration = sum(station_duration)
+
+        # Track friend's position
+        friend_position = -1
+        for i in range(len(stations)):
+            station_no = stations[i][0]
+            if station_no == friend_start:
+                friend_position = i
+                break
+
+        # Track each accumulated train duration
+        self.acum_train_duration = [0] * len(stations)
+        duration = 0
+        for i in range(len(stations)):
+            self.acum_train_duration[friend_position] = duration
+            duration += station_duration[friend_position]
+            friend_position = (friend_position + 1) % len(stations)
+
+        # Existence of multiverse
+        self.total_multiverse = self.total_train_duration
+        self.total_multiverse_location = self.total_reality_location * self.total_multiverse
+
+        # Construction of locations across multiverse
+        self.multiverse_locations = []
+        for multiverse in range(self.total_multiverse):
+            for location in range(self.total_reality_location):
+                self.multiverse_locations.append(Location(location))
+
+        # Construction of roads across multiverse
+        for layer in range(self.total_multiverse):
+            for start, end, cost, time in roads:
+                starting = layer * self.total_reality_location + start
+                multiverse = (layer + time) % self.total_multiverse
+                ending = multiverse * self.total_reality_location + end
+                self.multiverse_locations[starting].add_road(Road(starting, ending, cost, time))
     
     def dijkstra_search(self, start):
-        """Run Dijkstra's algorithm to find shortest paths from start location"""
-        location_cost = []
+        """
+        :Function description:
+            Search for the least cost paths from start location across all multiverses.
+
+        :Approach description:
+            1. Initialises costs and prepares MinHeap with starting location
+            2. Processes locations in order of increasing cost
+            3. For each location, updates costs to neighboring locations
+            4. Maintains optimal paths considering both cost and time
+
+        :Input:
+            start (int): Starting location number
+
+        :Time complexity:
+            O(R log L), where R is the number of roads and L is the number of locations.
+
+        :Time complexity analysis:
+            - Each location is processed once: O(|L|·T)
+            - Each road is processed once: O(|R|·T)
+            - Heap operations: O(log(|L|·T)) per operation
+            - Dominated by O(|R|·T log(|L|·T)) from heap operations
+
+        :Space complexity:
+            O(|L|·T + |R|·T)
+
+        :Space complexity analysis:
+            - O(|L|·T) for storing location costs and visited flags
+            - O(|R|·T) for storing roads
+
+        """
         
-        # Initialise corresponding cost for each location
-        for location_no in range(len(self.locations)):
-            if location_no != start:
-                location_cost.append((float('inf'), location_no))
-            else: # start location cost and time only 0, the rest unsure
-                location_cost.append((0, location_no))
-                self.locations[location_no].cost = 0
-                self.locations[location_no].time = 0
+        # Reset city cost for each location
+        location_cost = self.reset_city(start)
         
         # Construction of MinHeap arranged by minimum cost
         location_heap = MinHeap(location_cost)
@@ -69,7 +183,7 @@ class City:
         while not location_heap.is_empty():
             # Choose location with lowest cost
             current_cost, location_no = location_heap.get_min()
-            chosen_location = self.locations[location_no]
+            chosen_location = self.multiverse_locations[location_no]
             current_time = chosen_location.time
             
             if chosen_location.visited:
@@ -80,39 +194,80 @@ class City:
             for road in chosen_location.outgoing_roads:     
                 new_cost = current_cost + road.cost
                 new_time = current_time + road.time
-                next_location = self.locations[road.end]
+                next_location = self.multiverse_locations[road.end]
                 another_cost = next_location.cost
                 another_time = next_location.time
 
                 # New cost or time lesser than current
-                if (next_location.visited == False) and (new_cost <= another_cost) and (new_time < another_time):
+                if not next_location.visited and (new_cost < another_cost or (new_cost == another_cost and new_time < another_time)):
                     next_location.cost = new_cost
                     next_location.time = new_time
                     next_location.previous_location = chosen_location
-                    location_heap.update(next_location.location_no, new_cost)
+                    location_heap.update(road.end, new_cost)
+    
+    def reset_city(self, start):
+        """
+        :Function description:
+            Resets location heap of costs and times for all city locations for dijsktra algorithm.
+
+        :Input:
+            start (int): The starting location number
+
+        :Output:
+            list[tuple]: A list of tuples (cost, location_no) for initializing the MinHeap
         
+        :Time complexity:
+            O(L), where L is the number of locations.
+
+        :Time complexity analysis:
+            Linear time for reassigning each location's cost and time.
+        
+        :Space complexity:
+            Input space of O(1) for the single input of start location and auxiliary space of O(L) for the location_cost list.
+
+        """
+        location_cost = []
+
+        # Reset corresponding cost and time for each location
+        for location_no in range(len(self.multiverse_locations)):
+            if location_no != start:
+                location_cost.append((float('inf'), location_no))
+                self.multiverse_locations[location_no].cost = float('inf')
+                self.multiverse_locations[location_no].time = float('inf')
+            else: # start location cost and time only 0, the rest unsure
+                location_cost.append((0, location_no))
+                self.multiverse_locations[location_no].cost = 0
+                self.multiverse_locations[location_no].time = 0
+
+        return location_cost
 
 class Road:
     """
     This class represents a road between two locations.
     """
-    def __init__(self, start, end, cost, time) -> None:
+    def __init__(self, start, end, cost, time):
         """
-        Function description:
+        :Function description:
             A Road constructor.
+
         :Input:
-            start (int): Start location no
-            end (int): End location no
-            cost (int): Travel cost of this road
-            time (int): Travel time (mins) of this road
+            start (int) : Start location no
+            end (int)   : End location no
+            cost (int)  : Travel cost of this road
+            time (int)  : Travel time (mins) of this road
+
         :Time complexity:
             O(1)
+
         :Time complexity analysis:
             Constant time for initialisation of Road attributes. 
+
         :Space complexity:
             O(1)
+
         :Space complexity analysis:
             Constant space for input and auxiliary.
+
         """
         self.start = start
         self.end = end
@@ -121,8 +276,9 @@ class Road:
     
     def __str__(self):
         """
-        Function description:
+        :Function description:
             Returns a string representation of the Road object.
+
         :Output:
             str - A string representation descripting Road in the format "start --(cost, time)--> end"
         """
@@ -131,20 +287,25 @@ class Road:
 
 class Location:
     """
-    This class represents a regular location or train station.
+    This class represents a regular location or a train station.
     """
-    def __init__(self, location_no) -> None:
+    def __init__(self, location_no):
         """
-        Function description:
+        :Function description:
             A Location constructor.
+
         :Input:
             location_no (int): Location number for tracking
+
         :Time complexity:
             O(1)
+
         :Time complexity analysis:
             Constant time for initialisation of Location attributes. 
+
         :Space complexity:
             O(1)
+
         :Space complexity analysis:
             Constant space for input and auxiliary.
         """
@@ -157,30 +318,38 @@ class Location:
     
     def __str__(self):
         """
-        Function description:
+        :Function description:
             Returns a string representation of the Location object.
+
         :Output:
             str - A string descripting the location and its outgoing roads.
+
         """
         description = f"Location {self.location_no}"
         for road in self.outgoing_roads:
             description += f"\n• {str(road)}"
         return description
 
-    def add_road(self, road) -> None:
+    def add_road(self, road):
         """
-        Function description:
+        :Function description:
             Add one outgoing road to a list of all for this location.
+
         :Input:
             road (Road): Road object to be added
+
         :Time complexity:
             O(1)
+
         :Time complexity analysis:
             Amortised complexity for append().
+
         :Space complexity:
             O(N), where N is the number of roads.
+
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1).
+
         """
         self.outgoing_roads.append(road)
 
@@ -189,137 +358,168 @@ class MinHeap:
     """
     This class represents a MinHeap for efficient selection of the minimum cost vertex.
     """
-    def __init__(self, locations: list) -> None:
+    def __init__(self, locations) :
         """
-        Function description:
+        :Function description:
             A MinHeap constructor to store an array of minimum cost to locations.
+
         :Input:
             locations (list[tuple]): List of tuples (cost, location_no)
+
         :Time complexity:
             O(N), where N is the number of locations.
+
         :Time complexity analysis:
             Linear time for heapify().
+
         :Space complexity:
             O(N), where N is the number of input locations.
+
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1) for heap and position arrays.
+
         """
         self.length = len(locations)
         self.heap = [None] * (self.length + 1)
         self.position = list(range(1, self.length + 1)) # position map for updates
         self.heapify(locations)
     
-    def __len__(self) -> int:
+    def __len__(self):
         """
         Function description:
             Returns number of elements in heap array.
+
         :Input:
             None
+
         :Time complexity:
             O(1)
+
         :Time complexity analysis:
             Constant time for accessing the length attribute.
+
         :Space complexity:
             O(1)
+
         :Space complexity analysis:
             No additional space is used.
+
         """
         return self.length
     
-    def is_empty(self) -> bool:
+    def is_empty(self):
         """
-        Function description:
-            Checks if the heap is empty.
+        :Function description:
+            Checks if heap is empty.
+
         :Input:
             None
+
         :Output:
             bool - True if heap array is empty, False otherwise
+
         :Time complexity:
             O(1)
+
         :Time complexity analysis:
             Constant time for checking the heap array empty or not.
+
         :Space complexity:
             O(N), where N is the number of input locations.
+
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1) for heap array.
+
         """
         return len(self) == 0
 
-    def heapify(self, locations: list) -> None:
+    def heapify(self, locations):
         """
-        Function description:
+        :Function description:
             Bottom-up construction of MinHeap from an array of locations. 
+
         :Input:
             locations (list[tuple]): List of tuples (cost, location_no)
+
         :Time complexity:
             O(N), where N is the number of locations.
+
         :Time complexity analysis:
             Linear time for input locations and construction of MinHeap.
+
         :Space complexity:
             O(N), where N is the number of input locations.
+
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1) for heap and position arrays.
+
         """
         # Add input data into the heap
         for i in range(self.length):
             self.heap[i + 1] = locations[i]  # heap starts from index 1
             self.position[locations[i][1]] = i + 1  # map location_no to its position in the heap
-        print(self.heap)
-        print(self.position)
         # Perform bottom-up operation
         for i in range(self.length//2, 0, -1):
             self.sink(i)
 
-    def get_min(self) -> tuple [int, int]:
+    def get_min(self):
         """
-        Function description:
+        :Function description:
             Get minimum cost location from heap array.
+
         :Input:
             None
         :Output:
             Tuple[int, int] - Minimum cost and corresponding location
+
         :Time complexity:
             O(log N), where N is the number of elements in MinHeap.
+
         :Time complexity analysis:
             Logarithmic time for sink().
+
         :Space complexity:
             O(N), where N is the depth of the MinHeap.
+            
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1) for heap array.
+
         """
         if self.is_empty():
             raise IndexError("Heap is empty.")
-        print("----Heap----")
-        print("MinHeap:", self.heap)
         minimum = self.heap[1]
-        print("Minimum:", minimum)
 
         # Swap the root with the last element
         self.heap[1], self.heap[self.length] = self.heap[self.length], self.heap[1]
         self.position[self.heap[1][1]], self.position[self.heap[self.length][1]] = 1, self.length
 
         self.length -= 1
-        print("After swap:", self.heap)
         self.sink(1)
-        print("After sink:", self.heap)
         return minimum
     
-    def smallest_child(self, index: int) -> int:
+    def smallest_child(self, index):
         """
-        Function description:
+        :Function description:
             Find smallest child of a given parent node in MinHeap.
+
         :Input:
             index (int): Parent node index in MinHeap
+
         :Output:
             int - Smallest child node index
+
         :Time complexity:
             O(1)
+
         :Time complexity analysis:
             Constant time for comparisons to find smallest child.
+
         :Space complexity:
             O(N), where N is the depth of the MinHeap.
+
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1) for heap array.
+
         """
         left = 2 * index
         right = left + 1
@@ -330,20 +530,26 @@ class MinHeap:
             smallest = right
         return smallest
 
-    def sink(self, index: int):
+    def sink(self, index):
         """
-        Function description:
+        :Function description:
             Restores heap property by moving element down the heap.
+
         :Input:
             index (int): Index of the element to sink
+
         :Time complexity:
             O(log N), where N is the number of elements in MinHeap.
+
         :Time complexity analysis:
             Sinking an element involves traversing log N depth of the MinHeap.
+
         :Space complexity:
             O(N)
+
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1) for heap array.
+
         """
         while 2 * index <= self.length:
             smallest = self.smallest_child(index)
@@ -356,20 +562,26 @@ class MinHeap:
 
             index = smallest
 
-    def rise(self, index: int):
+    def rise(self, index):
         """
-        Function description:
+        :Function description:
             Restores heap property by moving element up the heap.
+            
         :Input:
             index (int): Rise element index in MinHeap
+
         :Time complexity:
             O(log N), where N is the number of elements in MinHeap.
+
         :Time complexity analysis:
             Rising an element involves traversing log N height of the MinHeap.
+
         :Space complexity:
             O(N)
+
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1) for heap array.
+
         """
         while index > 1:
             parent = index // 2
@@ -383,19 +595,25 @@ class MinHeap:
 
     def update(self, location_no, new_cost):
         """
-        Function description:
+        :Function description:
             Updates new cost for a location in MinHeap and restores heap property.
+
         :Input:
-            location_no (int): Location to update
-            new_cost (int): New cost to update to the location
+            location_no (int)   : Location to update
+            new_cost (int)      : New cost to update to the location
+
         :Time complexity:
             O(log N)
+
         :Time complexity analysis:
             Logarithmic time for rise().
+
         :Space complexity:
             O(N), where N is the depth of the MinHeap.
+
         :Space complexity analysis:
             Input space of O(N) and auxiliary space of O(1) for heap array.
+
         """
         position = self.position[location_no]
         self.heap[position] = (new_cost, location_no)
@@ -403,50 +621,70 @@ class MinHeap:
 
 def intercept(roads, stations, start, friend_start):
     """
-    Computes the optimal interception route to meet a friend on a train loop.
+    :Function description:
+        Search for best intercept location to meet a friend on a train loop.
+
+    :Approach description:
+        1.  Construct a city of roads and stations of the entire multiverse, and 
+            marking the friend start and train stations duration.
+        2.  Run dijsktra algorithm to search for shortest path to each location 
+            from driver's location.
+        3.  Choose the correct intercept location, depending on the computation of 
+            multiverse layer and location index.
+        4.  Check each train station with the intercept location to be the same time.
+        5.  Backtrack intercept route by checking the previous visited location and save it.
+        6.  Check chosen intercept route is of lowest cost and earliest arrival time.
+
     :Input:
-        roads: List of tuples (start, end, cost, time) representing the road network
-        stations: List of tuples (station_no, time_to_next) representing train stations
-        start: int - The starting location no
-        friend_start: int - The train station where the friend starts
+        roads       (List[Tuple[int, int, int, int]]) : A list of roads in the city, where each road contains the start, end, cost, time of this road.
+        stations    (List[Tuple[int, int]])           : A list of train stations in the city, where each station contains the station_no and time_travel of this station.
+        start       (int)                             : Starting location number of the driver.
+        friend_start (int)                            : Starting location number of the friend (on the train).
+
     :Output:
-        Tuple[int, int, List[int]] or None - The best interception result (cost, time, route)
+        Tuple[int, int, List[int, int]] or None : The best interception route, containing the cost, time and the route.
+
+    :Time complexity:
+        O(R log L), where R is the number of roads and L is the number of locations.
+
+    :Time complexity analysis:
+        Where R is the number of roads and L is the number of locations across all multiverses.
+        This comes from the Dijkstra's algorithm, which processes each location and edge once,
+        and uses a MinHeap for efficient extraction and update.
+
+    :Space complexity:
+        O(R + L), where R is the number of roads and L is the number of locations.
+
+    :Space complexity analysis:
+        Input space of O(R + L) for the input list of roads and locations to be constructed by City() constructor, 
+        and auxiliary space of O(R + L) for the storing of roads and locations in the city.
+
     """
     intercept_route = None
 
     # Construction of city
-    city = City(roads, stations)
+    city = City(roads, stations, friend_start)
+    # Shortest path for each location in city
     city.dijkstra_search(start)
     
-    # Track friend's position
-    friend_position = -1
-    for i, (station_no, _) in enumerate(city.stations):
-        if station_no == friend_start:
-            friend_position = i
-            break
-    # Friend not found
-    if friend_position == -1:
-        return None
-    
-    # Track each acumulated train duration
-    acum_train_duration = [0] * len(city.stations)
-    duration = 0
-    position = friend_position
-    for i in range(len(city.stations)):
-        acum_train_duration[position] = duration
-        duration += city.station_duration[position]
-        position = (position + 1) % len(city.stations)
-    
     # Possible interceptions for each train station
-    for station_no, _ in stations:
-        index = city.station_position[station_no]
-        location = city.locations[station_no]
+    for station in range(len(stations)):
+        # Accumulative time of this station
+        arrival_time = city.acum_train_duration[station]
+
+        # Best intercept location of which multiverse using modulus
+        multiverse = arrival_time % city.total_multiverse
+
+        # Best intercept location of which index 
+        station_index = stations[station][0]
+        location_index = station_index + (multiverse * city.total_reality_location)
+        location = city.multiverse_locations[location_index]
         
         # Best intercept time using modulus
         intercept_time = location.time % city.total_train_duration
         
         # Intercept !!!! when same location, same time
-        if acum_train_duration[index] == intercept_time:
+        if arrival_time == intercept_time:
             route = []
             backtrack = location
             # Backtrack previous locations to build route
@@ -461,25 +699,5 @@ def intercept(roads, stations, start, friend_start):
             elif location.cost == intercept_route[0]:
                 if location.time < intercept_route[1]:
                     intercept_route = (location.cost, location.time, route)
-    
+
     return intercept_route
-
-
-
-
-# Example Test Case (from PDF)
-# roads = [(6,0,3,1), (6,7,4,3), (6,5,6,2), (5,7,10,5), (4,8,8,5), (5,4,8,2),
-#          (8,9,1,2), (7,8,1,3), (8,3,2,3), (1,10,5,4), (0,1,10,3), (10,2,7,2),
-#          (3,2,15,2), (9,3,2,2), (2,4,10,5)]
-# stations = [(0,1), (5,1), (4,1), (3,1), (2,1), (1,1)]
-# start = 6
-# friendStart = 0
-
-roads = [(0,1,35,7), (1,2,5,4), (2,0,35,6), (0,4,10,5), (4,1,22,3),
-            (1,5,60,4), (5,3,70,2), (3,0,10,7)]
-stations = [(4,2), (5,1), (3,4)]
-start = 0
-friendStart = 3
-
-print(intercept(roads, stations, start, friendStart))
-# Expected: (7, 9, [6, 7, 8, 3])

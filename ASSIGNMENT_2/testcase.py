@@ -1,5 +1,5 @@
 import unittest
-from assignment2 import crowdedCampus
+from assignment24 import crowdedCampus
 
 class TestCrowdedCampus(unittest.TestCase):
     def check(self, n, m, time_preferences, proposed_classes, minimum_satisfaction, allocation):

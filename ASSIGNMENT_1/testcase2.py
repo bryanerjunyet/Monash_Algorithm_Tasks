@@ -1,5 +1,5 @@
 import unittest
-from assignment1 import intercept
+from assignment1cal import intercept
 
 # Group 1: TestInterceptEdgeCases
 class TestInterceptEdgeCases(unittest.TestCase):

@@ -1,5 +1,5 @@
 import unittest
-from assignment24 import crowdedCampus
+from assignment25 import crowdedCampus
 # test initial commit
 class TestCrowdedCampus(unittest.TestCase):
     def check(self, n, m, time_preferences, proposed_classes, minimum_satisfaction, allocation):

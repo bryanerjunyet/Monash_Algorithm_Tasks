@@ -55,38 +55,27 @@ class FlowNetwork:
     def build_residual_graph(self):
         """Construct the residual graph from the current flow network."""
         residual_vertices = [Vertex(i) for i in range(len(self.vertices))]
-        
         for edge in self.edges:
             # Forward edge with residual capacity
             if edge.residual_capacity() > 0:
                 forward = ResidualEdge(edge.u, edge.v, edge.residual_capacity(), edge, True)
                 residual_vertices[edge.u].add_edge(forward)
-            
             # Backward edge with residual capacity
             if edge.flow > 0:
                 backward = ResidualEdge(edge.v, edge.u, edge.flow, edge, False)
                 residual_vertices[edge.v].add_edge(backward)
-            
-            # Link edges if they exist
-            if edge.residual_capacity() > 0 and edge.flow > 0:
-                forward.reverse_edge = backward
-                backward.reverse_edge = forward
-            
         return residual_vertices
 
     def bfs(self, residual_vertices):
         """Perform BFS on the residual graph to find an augmenting path."""
         for vertex in residual_vertices:
             vertex.reset()
-
         queue = [residual_vertices[self.source_id]]
         residual_vertices[self.source_id].discovered = True
-
         while queue:
             u = queue.pop(0)
             if u.id == self.sink_id:
                 return True
-
             for edge in u.edges:
                 if edge.weight > 0:
                     v = residual_vertices[edge.v]
@@ -100,17 +89,14 @@ class FlowNetwork:
         """Implement the Ford-Fulkerson algorithm using BFS (Edmonds-Karp)."""
         max_flow = 0
         residual_vertices = self.build_residual_graph()
-
         while self.bfs(residual_vertices):
             # Find bottleneck capacity
             flow = float('inf')
             v = residual_vertices[self.sink_id]
-            
             while v.id != self.source_id:
                 edge = v.incoming_edge
                 flow = min(flow, edge.weight)
                 v = residual_vertices[edge.u]
-
             # Update flow along the path
             v = residual_vertices[self.sink_id]
             while v.id != self.source_id:
@@ -118,117 +104,91 @@ class FlowNetwork:
                 edge.weight -= flow
                 if edge.reverse_edge:
                     edge.reverse_edge.weight += flow
-
                 if edge.is_forward:
                     edge.original_edge.flow += flow
                 else:
                     edge.original_edge.flow -= flow
-
                 v = residual_vertices[edge.u]
-
             max_flow += flow
             residual_vertices = self.build_residual_graph()
-
         return max_flow
-
-# def is_in_top5(time_slot, preferences):
-#     """Check if time_slot is in first 5 preferences without using sets."""
-#     for i in range(min(5, len(preferences))):
-#         if preferences[i] == time_slot:
-#             return True
-#     return False
-
-# def is_in_preferences(time_slot, preferences):
-#     """Check if time_slot is in preferences without using sets."""
-#     for pref in preferences:
-#         if pref == time_slot:
-#             return True
-#     return False
 
 def crowdedCampus(n, m, timePreferences, proposedClasses, minimumSatisfaction):
     """
     Allocates students to classes while satisfying constraints.
-    Uses a flow network approach with Ford-Fulkerson algorithm.
+    Greedy approach: maximize satisfaction, then fill to meet min/max.
     """
     if n == 0 or m == 0:
         return None if n > 0 else []
 
-    # Preprocess: For each student, create lookup arrays for top5 and all preferences
-    # top5_lookup[student][time_slot] == True if time_slot is in student's top 5
-    # pref_lookup[student][time_slot] == True if time_slot is in student's preferences
-    top5_lookup = [[False] * 20 for _ in range(n)]
-    pref_lookup = [[False] * 20 for _ in range(n)]
+    # Track assignments and class loads
+    allocation = [-1] * n
+    class_load = [0] * m
+    satisfied = 0
+
+    # Phase 1: Assign students to their top 5 preferred classes if possible
     for student in range(n):
-        for i in range(min(5, len(timePreferences[student]))):
-            top5_lookup[student][timePreferences[student][i]] = True
-        for t in timePreferences[student]:
-            pref_lookup[student][t] = True
+        assigned = False
+        for k in range(min(5, len(timePreferences[student]))):
+            time_slot = timePreferences[student][k]
+            for class_id in range(m):
+                if (proposedClasses[class_id][0] == time_slot and
+                    class_load[class_id] < proposedClasses[class_id][2]):
+                    allocation[student] = class_id
+                    class_load[class_id] += 1
+                    satisfied += 1
+                    assigned = True
+                    break
+            if assigned:
+                break
 
-    # Vertex IDs:
-    # 0 to n-1: students
-    # n to n+m-1: classes
-    # n+m: source
-    # n+m+1: sink
-    source = n + m
-    sink = n + m + 1
-    total_vertices = n + m + 2
-    network = FlowNetwork(total_vertices, source, sink)
-
-    # Step 1: Connect source to students (capacity 1)
+    # Phase 2: Assign unassigned students to any class with available capacity
     for student in range(n):
-        network.add_edge(source, student, 1)
+        if allocation[student] == -1:
+            for k in range(len(timePreferences[student])):
+                time_slot = timePreferences[student][k]
+                for class_id in range(m):
+                    if (proposedClasses[class_id][0] == time_slot and
+                        class_load[class_id] < proposedClasses[class_id][2]):
+                        allocation[student] = class_id
+                        class_load[class_id] += 1
+                        break
+                if allocation[student] != -1:
+                    break
 
-    # Step 2: Connect classes to sink with their exact capacities
-    for class_id in range(m):
-        _, min_cap, max_cap = proposedClasses[class_id]
-        capacity = max_cap
-        network.add_edge(n + class_id, sink, capacity)
-
-    # Step 3: Connect students to classes they can attend
-    for student in range(n):
-        for class_id in range(m):
-            time_slot = proposedClasses[class_id][0]
-            if top5_lookup[student][time_slot]:
-                network.add_edge(student, n + class_id, 1)
-            elif pref_lookup[student][time_slot]:
-                network.add_edge(student, n + class_id, 1)
-
-    # Calculate required flow (must be exactly n)
-    required_flow = n
-
-    # Run Ford-Fulkerson
-    max_flow = network.ford_fulkerson()
-
-    # Check if we achieved the required flow
-    if max_flow != required_flow:
+    # Check if all students are assigned
+    if any(a == -1 for a in allocation):
         return None
 
-    # Extract allocation from flow network
-    allocation = [None] * n
-    for student in range(n):
-        for edge in network.vertices[student].edges:
-            if edge.flow > 0 and n <= edge.v < n + m:
-                allocation[student] = edge.v - n
-                break
-        else:
-            return None
+    # Check class min constraints
+    for class_id in range(m):
+        if class_load[class_id] < proposedClasses[class_id][1]:
+            # Try to reassign students from overfilled classes to this class
+            needed = proposedClasses[class_id][1] - class_load[class_id]
+            for student in range(n):
+                if allocation[student] != class_id:
+                    # Can this student be moved?
+                    old_class = allocation[student]
+                    if (proposedClasses[class_id][0] in timePreferences[student] and
+                        class_load[old_class] > proposedClasses[old_class][1]):
+                        allocation[student] = class_id
+                        class_load[class_id] += 1
+                        class_load[old_class] -= 1
+                        needed -= 1
+                        if needed == 0:
+                            break
+            if class_load[class_id] < proposedClasses[class_id][1]:
+                return None
 
-    # Verify class capacity constraints
-    counts = [0] * m
-    for a in allocation:
-        counts[a] += 1
-    for j in range(m):
-        min_cap, max_cap = proposedClasses[j][1], proposedClasses[j][2]
-        if not (min_cap <= counts[j] <= max_cap):
-            return None
-
-    # Verify minimum satisfaction constraint
+    # Recompute satisfaction
     satisfied = 0
     for student in range(n):
         class_id = allocation[student]
         time_slot = proposedClasses[class_id][0]
-        if top5_lookup[student][time_slot]:
-            satisfied += 1
+        for k in range(min(5, len(timePreferences[student]))):
+            if timePreferences[student][k] == time_slot:
+                satisfied += 1
+                break
 
     if satisfied < minimumSatisfaction:
         return None

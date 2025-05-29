@@ -1,6 +1,6 @@
 import unittest
 from assignment24 import crowdedCampus
-
+# test initial commit
 class TestCrowdedCampus(unittest.TestCase):
     def check(self, n, m, time_preferences, proposed_classes, minimum_satisfaction, allocation):
         self.assertIsInstance(allocation, list)

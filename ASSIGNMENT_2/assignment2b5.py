@@ -6,7 +6,7 @@ given dictionary. A Trie-based solution is implemented to efficiently store all
 dictionary words and optimise search process efficient lookup time by the Trie data structure.
 
 :Classes:
-Node    : A single Trie node that contains a complete word and character links.
+TrieNode    : A single Trie node that contains a complete word and character links.
 Bad_AI  : A Trie for efficient searching of words with one character substitution from the given dictionary. 
 
 """
@@ -15,7 +15,7 @@ __author__ = "Er Jun Yet"
 
 
 
-class Node:
+class TrieNode:
     """
     This class represents a single node in a Trie data structure.
     """
@@ -23,13 +23,13 @@ class Node:
     def __init__(self):
         """
         :Function description:
-            A Node constructor with 27 character links and a complete word stored (if it is an end node).
+            A TrieNode constructor with 27 character links and a complete word stored (if it is an end node).
 
         :Time complexity:
             O(1)
 
         :Time complexity analysis:
-            Constant time for initialisation of Node attributes.
+            Constant time for initialisation of TrieNode attributes.
         
         :Space complexity:
             O(1)
@@ -101,7 +101,7 @@ class Bad_AI:
         
     :Attributes:
         ALPHABETS   (str)   : Constant of all alphabets from a to z.
-        root        (Node)  : Root node of the Trie data structure.
+        root        (TrieNode)  : Root node of the Trie data structure.
         
     """
 
@@ -131,7 +131,7 @@ class Bad_AI:
 
         """
         # Root node of the Trie
-        self.root = Node()
+        self.root = TrieNode()
         # Each word of each char in the Trie
         for word in list_words:
             self.add_word(word)
@@ -140,7 +140,7 @@ class Bad_AI:
     def get_index(self, char):
         """
         :Function description:
-            Get the corresponding character index in the links array of Node.
+            Get the corresponding character index in the links array of TrieNode.
 
         :Input:
             char (str): A character.
@@ -179,7 +179,7 @@ class Bad_AI:
             O(M), where M is the number of characters in the word.
         
         :Time complexity analysis:
-            Linear time for inserting each character Node of the word into the Trie.
+            Linear time for inserting each character TrieNode of the word into the Trie.
 
         :Space complexity:
             O(M), where M is the number of characters in the word.
@@ -196,7 +196,7 @@ class Bad_AI:
             
             # Create a new node for new character
             if current_node.links[index] is None:
-                current_node.links[index] = Node()
+                current_node.links[index] = TrieNode()
                 current_node = self.next_char(current_node, index)
             else:
                 current_node = self.next_char(current_node, index)
@@ -204,7 +204,7 @@ class Bad_AI:
         # Store complete word at the terminal node
         word_index = self.get_index('$')
         if current_node.get_word() is None:
-            current_node.links[word_index] = Node()
+            current_node.links[word_index] = TrieNode()
             current_node.links[word_index].word = word
         else:
             current_node.links[word_index].word = word
@@ -216,11 +216,11 @@ class Bad_AI:
             Traverse to next Node in Trie with links array.
 
         :Input:
-            current_node (Node): Current node.
+            current_node (TrieNode): Current node.
             current_index (int): Character index in links array.
 
         :Output:
-            Node or None: The next node or None (no next node).
+            TrieNode or None: The next node or None (no next node).
 
         :Time complexity:
             O(1)
@@ -311,36 +311,3 @@ class Bad_AI:
                             results.append(current_node.get_word())
         
         return results
-
-
-# Let's test it with the example from the assignment
-if __name__ == "__main__":
-    print("Testing our Bad_AI implementation:")
-    
-    # Our list of correct words
-    correct_words = ["baa", "abc", "xyz", "aba", "aaaa"]
-    
-    # Words to check against
-    test_words = ["aaa", "axa", "ab", "xxx", "aaab"]
-    
-    # Expected results
-    expected = [
-        ["aba"],
-        ["aaa", "aba"],
-        [],
-        [],
-        ["aaaa"]
-    ]
-    
-    # Create our Bad_AI helper
-    word_checker = Bad_AI(correct_words)
-    
-    # Test each case
-    for i in range(len(test_words)):
-        word = test_words[i]
-        found = word_checker.check_word(word)
-        print(f"Checking '{word}':")
-        print(f"  Found: {found}")
-        print(f"  Expected: {expected[i]}")
-        print("  " + ("✓ Passed" if sorted(found) == sorted(expected[i]) else "✗ Failed"))
-        print()

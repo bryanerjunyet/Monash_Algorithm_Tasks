@@ -1,10 +1,11 @@
 import unittest
-from assignment257 import crowdedCampus
+from assignment261 import crowdedCampus
 from assignment2b5 import Bad_AI
+
 
 class TestA2(unittest.TestCase):
     def validate_allocation(
-        self, n, m, time_preferences, proposed_classes, minimum_satisfaction, allocation
+            self, n, m, time_preferences, proposed_classes, minimum_satisfaction, allocation
     ):
         # Check correct type and length
         self.assertIsInstance(allocation, list)
@@ -479,7 +480,7 @@ class TestA2(unittest.TestCase):
         min_satisfaction = 1
         allocation = crowdedCampus(n, m, time_preferences, proposed_classes, min_satisfaction)
         self.validate_allocation(n, m, time_preferences, proposed_classes, min_satisfaction, allocation)
-        
+
     def test_gc_2(self):
         n = 7
         m = 3
@@ -491,7 +492,7 @@ class TestA2(unittest.TestCase):
                             [0] + list(range(1, 20)),
                             [0] + list(range(1, 20))]
 
-        proposed_classes = [[0, 1, 20], [0, 3, 5] ,[5, 3, 20]]
+        proposed_classes = [[0, 1, 20], [0, 3, 5], [5, 3, 20]]
         min_satisfaction = 2
         allocation = crowdedCampus(n, m, time_preferences, proposed_classes, min_satisfaction)
         self.validate_allocation(n, m, time_preferences, proposed_classes, min_satisfaction, allocation)
@@ -504,7 +505,7 @@ class TestA2(unittest.TestCase):
         minimum_satisfaction = 6
         allocation = crowdedCampus(n, m, time_preferences, proposed_classes, minimum_satisfaction)
         self.assertIsNone(allocation)
-    
+
     def test_e_q1_1(self):
         n = 3
         m = 2
@@ -540,6 +541,7 @@ class TestA2(unittest.TestCase):
         minimum_satisfaction = 6
         allocation = crowdedCampus(n, m, time_preferences, proposed_classes, minimum_satisfaction)
         self.validate_allocation(n, m, time_preferences, proposed_classes, minimum_satisfaction, allocation)
+
 
 if __name__ == "__main__":
     unittest.main()
